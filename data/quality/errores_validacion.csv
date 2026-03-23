@@ -1,2 +1,1 @@
 fecha_snapshot,sheet_name,severity,error_code,contenedor_id,detail
-2026-03-23,pipeline,ERROR,google_sheets_protection_failed,,"<HttpError 400 when requesting https://sheets.googleapis.com/v4/spreadsheets/1v0E_F2QbjWOGOR93vWT_hZEeNnK06CVX?alt=json returned ""This operation is not supported for this document"". Details: ""This operation is not supported for this document"">"
