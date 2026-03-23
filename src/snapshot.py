@@ -37,3 +37,22 @@ def append_daily_snapshot(
     combined.to_csv(history_path, index=False)
     LOGGER.info("Snapshot persistido: %s (%s filas)", history_path.name, len(combined))
     return combined
+
+
+def upsert_latest_snapshot(
+    current_df: pd.DataFrame,
+    output_path: Path,
+    snapshot_date: str,
+    key_columns: list[str],
+) -> pd.DataFrame:
+    latest_df = current_df.copy()
+    latest_df["fecha_snapshot"] = snapshot_date
+
+    combined = latest_df.copy()
+    dedupe_keys = [column for column in key_columns if column in combined.columns]
+    if dedupe_keys:
+        combined = combined.drop_duplicates(subset=dedupe_keys, keep="last")
+
+    combined.to_csv(output_path, index=False)
+    LOGGER.info("Estado latest persistido: %s (%s filas)", output_path.name, len(combined))
+    return combined

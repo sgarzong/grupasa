@@ -10,7 +10,7 @@ import pandas as pd
 from src.config import ensure_directories, get_settings
 from src.download_source import fetch_source_workbook, read_source_sheets
 from src.export_outputs import export_csv
-from src.snapshot import append_daily_snapshot
+from src.snapshot import append_daily_snapshot, upsert_latest_snapshot
 from src.transform import CURRENT_OUTPUT_COLUMNS, build_current_dataset
 from src.validate import standardize_and_validate
 
@@ -54,13 +54,13 @@ def run_pipeline() -> int:
             settings.snapshot_date,
             ["contenedor_id"],
         )
-        append_daily_snapshot(
+        upsert_latest_snapshot(
             standardized_sheets["Registro_Contenedores"],
             settings.registro_congelado_path,
             settings.snapshot_date,
             ["contenedor_id"],
         )
-        append_daily_snapshot(
+        upsert_latest_snapshot(
             standardized_sheets["Planif_Galagans"],
             settings.plan_galagans_congelado_path,
             settings.snapshot_date,

@@ -1,0 +1,104 @@
+-- Base
+Contenedores = COUNTROWS(FactContenedoresActual)
+
+Contenedores En Puerto =
+CALCULATE(
+    [Contenedores],
+    FactContenedoresActual[status_actual] = "EN PUERTO"
+)
+
+Contenedores En Patio =
+CALCULATE(
+    [Contenedores],
+    FactContenedoresActual[status_actual] = "EN PATIO GALAGANS"
+)
+
+Contenedores Entregados =
+CALCULATE(
+    [Contenedores],
+    FactContenedoresActual[status_actual] = "ENTREGADO"
+)
+
+Alertas CAS =
+CALCULATE(
+    [Contenedores],
+    FactContenedoresActual[alerta_cas] = TRUE()
+)
+
+CAS Vencidos =
+CALCULATE(
+    [Contenedores],
+    FactContenedoresActual[cas_vencido] = TRUE()
+)
+
+Incidencias =
+CALCULATE(
+    [Contenedores],
+    NOT ISBLANK(FactContenedoresActual[tipo_incidencia]),
+    FactContenedoresActual[tipo_incidencia] <> "SIN NOVEDAD"
+)
+
+Pct Cumplimiento Grupasa =
+DIVIDE(
+    CALCULATE(
+        [Contenedores],
+        FactContenedoresActual[cumplimiento_grupasa] = "CUMPLE"
+    ),
+    CALCULATE(
+        [Contenedores],
+        FactContenedoresActual[cumplimiento_grupasa] IN {"CUMPLE", "INCUMPLE"}
+    )
+)
+
+Pct Cumplimiento Galagans =
+DIVIDE(
+    CALCULATE(
+        [Contenedores],
+        FactContenedoresActual[cumplimiento_galagans] = "CUMPLE"
+    ),
+    CALCULATE(
+        [Contenedores],
+        FactContenedoresActual[cumplimiento_galagans] IN {"CUMPLE", "INCUMPLE"}
+    )
+)
+
+Dias Prom Puerto a Patio =
+AVERAGE(FactContenedoresActual[dias_puerto_a_patio])
+
+Dias Prom Patio a Bodega =
+AVERAGE(FactContenedoresActual[dias_patio_a_bodega])
+
+Dias Prom Bodega a Deposito =
+AVERAGE(FactContenedoresActual[dias_bodega_a_deposito])
+
+Errores Validacion = COUNTROWS(FactErroresValidacion)
+
+Snapshots Status =
+COUNTROWS(FactStatusHistorico)
+
+Contenedores Unicos Historico =
+DISTINCTCOUNT(FactStatusHistorico[contenedor_id])
+
+Entregados Historico =
+CALCULATE(
+    DISTINCTCOUNT(FactStatusHistorico[contenedor_id]),
+    FactStatusHistorico[status_actual] = "ENTREGADO"
+)
+
+Contenedores con Incidencia =
+CALCULATE(
+    DISTINCTCOUNT(FactContenedoresActual[contenedor_id]),
+    NOT ISBLANK(FactContenedoresActual[tipo_incidencia]),
+    FactContenedoresActual[tipo_incidencia] <> "SIN NOVEDAD"
+)
+
+Semaforo CAS =
+SWITCH(
+    TRUE(),
+    [CAS Vencidos] > 0, "Rojo",
+    [Alertas CAS] > 0, "Amarillo",
+    "Verde"
+)
+
+Ultima Fecha Snapshot =
+MAX(FactContenedoresActual[fecha_snapshot])

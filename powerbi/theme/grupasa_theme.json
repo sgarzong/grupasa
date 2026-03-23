@@ -1,0 +1,54 @@
+{
+  "name": "Grupasa Logistics",
+  "dataColors": [
+    "#154C79",
+    "#2E7D32",
+    "#E07A1F",
+    "#C62828",
+    "#6D4C41",
+    "#00838F",
+    "#5E35B1",
+    "#455A64"
+  ],
+  "background": "#F5F1E8",
+  "foreground": "#1C2833",
+  "tableAccent": "#154C79",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "title": [
+          {
+            "show": true,
+            "fontSize": 13,
+            "fontFamily": "Segoe UI Semibold",
+            "color": { "solid": { "color": "#1C2833" } }
+          }
+        ],
+        "background": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#FFFDFC" } },
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "show": true,
+            "color": { "solid": { "color": "#D7CCC8" } },
+            "radius": 6
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": { "solid": { "color": "#F5F1E8" } },
+            "transparency": 0
+          }
+        ]
+      }
+    }
+  }
+}

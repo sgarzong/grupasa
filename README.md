@@ -14,7 +14,10 @@ Proceso:
 
 1. `download_source.py` descarga el XLSX desde `SOURCE_XLSX_URL` o usa `SOURCE_LOCAL_PATH`.
 2. `validate.py` estandariza nombres de columnas, tipa fechas y registra errores de estructura y reglas de negocio.
-3. `snapshot.py` persiste snapshots diarios append-only en CSV para `Registro_Contenedores`, `Planif_Galagans` y `Status_Operativo`.
+3. `snapshot.py` persiste:
+   - histórico diario solo para `Status_Operativo`
+   - estado vigente sin duplicados por contenedor para `Registro_Contenedores`
+   - estado vigente sin duplicados por contenedor para `Planif_Galagans`
 4. `transform.py` consolida una fila actual por contenedor y deriva alertas, cumplimiento y tiempos entre etapas usando snapshots históricos.
 5. `export_outputs.py` publica los CSV finales para Power BI.
 6. GitHub Actions ejecuta el flujo diariamente y versiona los históricos dentro del repositorio.
@@ -94,6 +97,18 @@ Como no hay fechas reales explícitas para todos los hitos, las fechas operativa
 - primera fecha en `BODEGA`: primer snapshot cuyo status contenga `BODEGA` o `ENTREGADO`
 - primera fecha en `DEPOSITO`: primer snapshot cuyo status contenga `DEPOSITO` o `VACIO`
 
+## Semántica de persistencia
+
+- `status_historico.csv`:
+  - guarda una fila por `contenedor_id + fecha_snapshot`
+  - si el pipeline corre más de una vez el mismo día, conserva solo la última corrida de ese día
+- `registro_congelado.csv`:
+  - no acumula snapshots diarios
+  - conserva solo el último estado conocido por `contenedor_id`
+- `plan_galagans_congelado.csv`:
+  - no acumula snapshots diarios
+  - conserva solo el último estado conocido por `contenedor_id`
+
 ## Validaciones implementadas
 
 El módulo `validate.py` revisa:
@@ -153,7 +168,20 @@ Columnas:
 - `contenedor_id`
 - `detail`
 
-Los históricos son append-only por `fecha_snapshot + contenedor_id`. Si el workflow corre dos veces el mismo día, reemplaza solo la foto de ese día y preserva el pasado.
+`status_historico.csv` es el único histórico append-only por `fecha_snapshot + contenedor_id`. Si el workflow corre dos veces el mismo día, reemplaza solo la foto de ese día y preserva el pasado.
+
+`registro_congelado.csv` y `plan_galagans_congelado.csv` son tablas de estado vigente por contenedor, sin repetidos entre días.
+
+## Bloqueo en Google Sheets
+
+Bloquear celdas o filas en Google Sheets después de correr el pipeline no se puede hacer usando solo la URL de exportación XLSX. Para eso hace falta acceso de escritura a Google Sheets API con una cuenta de servicio o credenciales OAuth con permiso editor sobre el archivo.
+
+Con el estado actual del proyecto:
+
+- sí se puede leer el archivo por URL y generar CSV
+- no se puede bloquear edición dentro del Google Sheet fuente
+
+Si quieres automatizar ese bloqueo real en Sheets, el siguiente cambio técnico es integrar Google Sheets API con credenciales seguras en GitHub Actions.
 
 ## Configuración
 
