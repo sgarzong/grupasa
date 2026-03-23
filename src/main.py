@@ -81,8 +81,22 @@ def run_pipeline() -> int:
 
         all_issues = pd.concat([validation_errors, pd.DataFrame(pipeline_issues)], ignore_index=True, sort=False)
         export_csv(current_output, settings.contenedores_actual_path)
+
+        try:
+            protect_operational_rows(settings, standardized_sheets, header_rows)
+        except Exception as exc:
+            logger.exception("Fallo no bloqueante en proteccion de Google Sheets: %s", exc)
+            pipeline_issues.append(
+                _build_pipeline_issue(
+                    settings.snapshot_date,
+                    "ERROR",
+                    "google_sheets_protection_failed",
+                    str(exc),
+                )
+            )
+
+        all_issues = pd.concat([validation_errors, pd.DataFrame(pipeline_issues)], ignore_index=True, sort=False)
         export_csv(all_issues, settings.errores_validacion_path)
-        protect_operational_rows(settings, standardized_sheets, header_rows)
         logger.info("Pipeline completado. Filas actuales=%s | errores=%s", len(current_output), len(all_issues))
         return 0
     except Exception as exc:

@@ -107,7 +107,7 @@ def _build_sheets_service(service_account_json: str):
         credentials_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets"],
     )
-    return build("sheets", "v4", credentials=credentials)
+    return build("sheets", "v4", credentials=credentials, cache_discovery=False)
 
 
 def _collect_managed_protections(spreadsheet: dict[str, Any]) -> list[int]:
