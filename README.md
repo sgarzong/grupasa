@@ -174,14 +174,36 @@ Columnas:
 
 ## Bloqueo en Google Sheets
 
-Bloquear celdas o filas en Google Sheets después de correr el pipeline no se puede hacer usando solo la URL de exportación XLSX. Para eso hace falta acceso de escritura a Google Sheets API con una cuenta de servicio o credenciales OAuth con permiso editor sobre el archivo.
+El proyecto ya soporta protección automática en Google Sheets, pero requiere configuración adicional.
 
-Con el estado actual del proyecto:
+Qué hace:
 
-- sí se puede leer el archivo por URL y generar CSV
-- no se puede bloquear edición dentro del Google Sheet fuente
+- después de una corrida exitosa
+- elimina protecciones previas administradas por el pipeline
+- vuelve a crear protecciones sobre las filas de datos de:
+  - `Registro_Contenedores`
+  - `Planif_Grupasa`
+  - `Planif_Galagans`
 
-Si quieres automatizar ese bloqueo real en Sheets, el siguiente cambio técnico es integrar Google Sheets API con credenciales seguras en GitHub Actions.
+Suposición aplicada:
+
+- se bloquea la fila completa de datos cargada en cada una de esas hojas
+- `Status_Operativo` no se bloquea
+
+Qué necesitas configurar:
+
+1. Crear una service account en Google Cloud.
+2. Habilitar Google Sheets API en ese proyecto.
+3. Compartir el Google Sheet con el email de la service account como `Editor`.
+4. Guardar el JSON completo de la credencial en GitHub Secret:
+   - `GOOGLE_SERVICE_ACCOUNT_JSON`
+5. Crear la variable de repositorio:
+   - `GOOGLE_SHEETS_ENABLE_PROTECTION=true`
+
+Notas:
+
+- sin estas credenciales, el pipeline sigue funcionando en modo solo lectura
+- la fuente sigue siendo `SOURCE_XLSX_URL`, pero la protección usa el `spreadsheetId` extraído de esa URL
 
 ## Configuración
 
@@ -193,6 +215,8 @@ Variables:
 - `SOURCE_LOCAL_PATH`: ruta local a un XLSX para pruebas o contingencia
 - `CAS_ALERT_DAYS`: ventana de alerta CAS
 - `TIMEZONE`: `America/Guayaquil`
+- `GOOGLE_SHEETS_ENABLE_PROTECTION`: `true/false` para activar bloqueo post-pipeline
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: JSON completo de la cuenta de servicio con acceso editor al Google Sheet
 
 ## Cómo cambiar la URL fuente
 

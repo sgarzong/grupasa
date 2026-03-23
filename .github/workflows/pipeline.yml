@@ -31,6 +31,8 @@ jobs:
           SOURCE_XLSX_URL: ${{ vars.SOURCE_XLSX_URL }}
           CAS_ALERT_DAYS: ${{ vars.CAS_ALERT_DAYS || '3' }}
           TIMEZONE: America/Guayaquil
+          GOOGLE_SHEETS_ENABLE_PROTECTION: ${{ vars.GOOGLE_SHEETS_ENABLE_PROTECTION || 'false' }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: python -m src.main
 
       - name: Run tests

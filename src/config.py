@@ -21,6 +21,8 @@ class Settings:
     source_local_path: Path | None
     cas_alert_days: int
     timezone_name: str
+    google_sheets_enable_protection: bool
+    google_service_account_json: str
     raw_dir: Path
     curated_dir: Path
     history_dir: Path
@@ -62,6 +64,8 @@ def get_settings() -> Settings:
         source_local_path=source_local_path,
         cas_alert_days=int(os.getenv("CAS_ALERT_DAYS", "3")),
         timezone_name=timezone_name,
+        google_sheets_enable_protection=os.getenv("GOOGLE_SHEETS_ENABLE_PROTECTION", "false").strip().lower() == "true",
+        google_service_account_json=os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip(),
         raw_dir=raw_dir,
         curated_dir=curated_dir,
         history_dir=history_dir,

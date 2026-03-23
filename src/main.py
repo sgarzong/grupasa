@@ -8,8 +8,9 @@ from typing import Any
 import pandas as pd
 
 from src.config import ensure_directories, get_settings
-from src.download_source import fetch_source_workbook, read_source_sheets
+from src.download_source import detect_header_rows, fetch_source_workbook, read_source_sheets
 from src.export_outputs import export_csv
+from src.protect_sheet import protect_operational_rows
 from src.snapshot import append_daily_snapshot, upsert_latest_snapshot
 from src.transform import CURRENT_OUTPUT_COLUMNS, build_current_dataset
 from src.validate import standardize_and_validate
@@ -46,6 +47,10 @@ def run_pipeline() -> int:
             raise RuntimeError("No existe fuente descargada ni cacheada para procesar")
 
         raw_sheets = read_source_sheets(download_result.source_path)
+        header_rows = detect_header_rows(
+            download_result.source_path,
+            ["Registro_Contenedores", "Planif_Grupasa", "Planif_Galagans"],
+        )
         standardized_sheets, validation_errors = standardize_and_validate(raw_sheets, settings.snapshot_date)
 
         status_history = append_daily_snapshot(
@@ -77,6 +82,7 @@ def run_pipeline() -> int:
         all_issues = pd.concat([validation_errors, pd.DataFrame(pipeline_issues)], ignore_index=True, sort=False)
         export_csv(current_output, settings.contenedores_actual_path)
         export_csv(all_issues, settings.errores_validacion_path)
+        protect_operational_rows(settings, standardized_sheets, header_rows)
         logger.info("Pipeline completado. Filas actuales=%s | errores=%s", len(current_output), len(all_issues))
         return 0
     except Exception as exc:

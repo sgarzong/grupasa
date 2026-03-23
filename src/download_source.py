@@ -73,6 +73,17 @@ def read_source_sheets(source_path: Path) -> dict[str, pd.DataFrame]:
     return selected
 
 
+def detect_header_rows(source_path: Path, sheet_names: list[str]) -> dict[str, int]:
+    headers: dict[str, int] = {}
+    for sheet_name in sheet_names:
+        try:
+            preview = pd.read_excel(source_path, sheet_name=sheet_name, header=None)
+            headers[sheet_name] = _detect_header_row(preview, sheet_name)
+        except ValueError:
+            continue
+    return headers
+
+
 def _copy_file(source_path: Path, latest_path: Path, archive_path: Path) -> None:
     shutil.copy2(source_path, latest_path)
     shutil.copy2(source_path, archive_path)
