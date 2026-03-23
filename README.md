@@ -1,6 +1,6 @@
-# Proyecto Logístico Sheets -> CSV para Power BI
+# Proyecto Logistico Sheets -> CSV para Power BI
 
-Pipeline cloud-first y de costo cero para descargar diariamente un Google Sheet operativo, congelar snapshots append-only y publicar archivos CSV curados listos para Power BI.
+Pipeline cloud-first y de costo cero para descargar diariamente un Google Sheet operativo, mantener historicos operativos y publicar una capa CSV en modelo estrella lista para Power BI.
 
 ## Arquitectura
 
@@ -15,12 +15,13 @@ Proceso:
 1. `download_source.py` descarga el XLSX desde `SOURCE_XLSX_URL` o usa `SOURCE_LOCAL_PATH`.
 2. `validate.py` estandariza nombres de columnas, tipa fechas y registra errores de estructura y reglas de negocio.
 3. `snapshot.py` persiste:
-   - histórico diario solo para `Status_Operativo`
+   - historico diario solo para `Status_Operativo`
    - estado vigente sin duplicados por contenedor para `Registro_Contenedores`
    - estado vigente sin duplicados por contenedor para `Planif_Galagans`
-4. `transform.py` consolida una fila actual por contenedor y deriva alertas, cumplimiento y tiempos entre etapas usando snapshots históricos.
-5. `export_outputs.py` publica los CSV finales para Power BI.
-6. GitHub Actions ejecuta el flujo diariamente y versiona los históricos dentro del repositorio.
+4. `transform.py` consolida una fila actual por contenedor y deriva alertas, cumplimiento y tiempos entre etapas usando snapshots historicos.
+5. `transform.py` tambien construye una capa estrella para BI con dimensiones y hechos separados.
+6. `export_outputs.py` publica los CSV finales para operacion y Power BI.
+7. GitHub Actions ejecuta el flujo diariamente y versiona los historicos dentro del repositorio.
 
 Salida:
 
@@ -29,6 +30,12 @@ Salida:
 - `data/history/registro_congelado.csv`
 - `data/history/plan_galagans_congelado.csv`
 - `data/quality/errores_validacion.csv`
+- `data/powerbi/dim_contenedor.csv`
+- `data/powerbi/dim_fecha.csv`
+- `data/powerbi/dim_status.csv`
+- `data/powerbi/dim_bodega.csv`
+- `data/powerbi/fact_status_diario.csv`
+- `data/powerbi/fact_plan_actual.csv`
 - `logs/pipeline.log`
 
 ## Estructura
@@ -44,6 +51,7 @@ project/
     download_source.py
     export_outputs.py
     main.py
+    protect_sheet.py
     sample_data.py
     snapshot.py
     transform.py
@@ -53,6 +61,7 @@ project/
     curated/
     history/
     quality/
+    powerbi/
   logs/
   .github/
     workflows/
@@ -62,26 +71,26 @@ project/
     test_transform.py
 ```
 
-## Clave de integración
+## Clave de integracion
 
-La clave de unión entre hojas es `contenedor_id`.
+La clave de union entre hojas es `contenedor_id`.
 
-Diseño adoptado:
+Diseno adoptado:
 
 - `Registro_Contenedores` es la fuente maestra preferida.
-- Si un contenedor existe solo en planificación o status, igual entra al consolidado actual.
-- En la estandarización se aceptan aliases comunes como `Contenedor`, `contenedor_id`, `container`.
+- Si un contenedor existe solo en planificacion o status, igual entra al consolidado actual.
+- En la estandarizacion se aceptan aliases comunes como `Contenedor`, `contenedor_id`, `container`.
 
 ## Reglas de negocio implementadas
 
-- `alerta_cas = true` si `status_actual == "EN PUERTO"` y faltan entre 0 y `CAS_ALERT_DAYS` días para `fecha_cas`.
+- `alerta_cas = true` si `status_actual == "EN PUERTO"` y faltan entre 0 y `CAS_ALERT_DAYS` dias para `fecha_cas`.
 - `cas_vencido = true` si `status_actual == "EN PUERTO"` y `fecha_cas < fecha_snapshot`.
 - `cumplimiento_grupasa`:
-  - compara `plan_llegada_grupasa` contra la primera fecha histórica en que el contenedor llegó a etapa `BODEGA`
+  - compara `plan_llegada_grupasa` contra la primera fecha historica en que el contenedor llego a etapa `BODEGA`
   - valores posibles: `CUMPLE`, `INCUMPLE`, `PENDIENTE`, `SIN_PLAN`
 - `cumplimiento_galagans`:
-  - prioridad 1: compara `plan_devolucion_vacio` contra la primera fecha histórica en que el contenedor llegó a `DEPOSITO`
-  - prioridad 2: si no existe plan de devolución, compara `plan_llegada_patio` contra la primera fecha histórica en `PATIO`
+  - prioridad 1: compara `plan_devolucion_vacio` contra la primera fecha historica en que el contenedor llego a `DEPOSITO`
+  - prioridad 2: si no existe plan de devolucion, compara `plan_llegada_patio` contra la primera fecha historica en `PATIO`
   - valores posibles: `CUMPLE`, `INCUMPLE`, `PENDIENTE`, `SIN_PLAN`
 - Duraciones:
   - `dias_puerto_a_patio`
@@ -90,44 +99,44 @@ Diseño adoptado:
 
 ## Inferencias documentadas
 
-Como no hay fechas reales explícitas para todos los hitos, las fechas operativas se infieren a partir de snapshots diarios:
+Como no hay fechas reales explicitas para todos los hitos, las fechas operativas se infieren a partir de snapshots diarios:
 
 - primera fecha en `PUERTO`: primer snapshot con status que contenga `PUERTO`; si no existe, usa `fecha_arribo`
 - primera fecha en `PATIO`: primer snapshot cuyo status contenga `PATIO`
 - primera fecha en `BODEGA`: primer snapshot cuyo status contenga `BODEGA` o `ENTREGADO`
 - primera fecha en `DEPOSITO`: primer snapshot cuyo status contenga `DEPOSITO` o `VACIO`
 
-## Semántica de persistencia
+## Semantica de persistencia
 
 - `status_historico.csv`:
   - guarda una fila por `contenedor_id + fecha_snapshot`
-  - si el pipeline corre más de una vez el mismo día, conserva solo la última corrida de ese día
+  - si el pipeline corre mas de una vez el mismo dia, conserva solo la ultima corrida de ese dia
 - `registro_congelado.csv`:
   - no acumula snapshots diarios
-  - conserva solo el último estado conocido por `contenedor_id`
+  - conserva solo el ultimo estado conocido por `contenedor_id`
 - `plan_galagans_congelado.csv`:
   - no acumula snapshots diarios
-  - conserva solo el último estado conocido por `contenedor_id`
+  - conserva solo el ultimo estado conocido por `contenedor_id`
 
 ## Validaciones implementadas
 
-El módulo `validate.py` revisa:
+El modulo `validate.py` revisa:
 
 - columnas faltantes
 - hojas faltantes
 - contenedores duplicados
-- `fecha_cas` vacía
-- `status_actual` vacío
+- `fecha_cas` vacia
+- `status_actual` vacio
 - `Horario_Entrega_Real` lleno cuando `status_actual != ENTREGADO`
 - `status_actual == ENTREGADO` sin `Horario_Entrega_Real`
 
-El pipeline no se rompe por errores de calidad. Registra incidencias en `data/quality/errores_validacion.csv` y sigue generando salidas con la mejor información disponible.
+El pipeline no se rompe por errores de calidad. Registra incidencias en `data/quality/errores_validacion.csv` y sigue generando salidas con la mejor informacion disponible.
 
-## Esquema de salidas
+## Esquema de salidas operativas
 
 ### `contenedores_actual.csv`
 
-Columnas mínimas:
+Columnas minimas:
 
 - `fecha_snapshot`
 - `contenedor_id`
@@ -168,29 +177,82 @@ Columnas:
 - `contenedor_id`
 - `detail`
 
-`status_historico.csv` es el único histórico append-only por `fecha_snapshot + contenedor_id`. Si el workflow corre dos veces el mismo día, reemplaza solo la foto de ese día y preserva el pasado.
+## Modelo estrella para Power BI
 
-`registro_congelado.csv` y `plan_galagans_congelado.csv` son tablas de estado vigente por contenedor, sin repetidos entre días.
+La capa recomendada para BI es `data/powerbi/`.
+
+Tablas:
+
+- `dim_contenedor.csv`: atributos maestros del contenedor
+- `dim_fecha.csv`: calendario para todas las fechas relevantes
+- `dim_status.csv`: catalogo de status y etapa derivada
+- `dim_bodega.csv`: catalogo de bodegas
+- `fact_status_diario.csv`: grano `1 fila por contenedor por fecha_snapshot`
+- `fact_plan_actual.csv`: grano `1 fila por contenedor en la foto vigente`
+
+Relaciones sugeridas en Power BI:
+
+- `dim_contenedor[contenedor_key]` -> `fact_status_diario[contenedor_key]`
+- `dim_contenedor[contenedor_key]` -> `fact_plan_actual[contenedor_key]`
+- `dim_status[status_key]` -> `fact_status_diario[status_key]`
+- `dim_status[status_key]` -> `fact_plan_actual[status_key]`
+- `dim_bodega[bodega_key]` -> `fact_status_diario[bodega_key]`
+- `dim_bodega[bodega_key]` -> `fact_plan_actual[bodega_key]`
+- `dim_fecha[fecha_key]` -> `fact_status_diario[fecha_key]`
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[snapshot_fecha_key]`
+
+Relaciones de fecha adicionales recomendadas como inactivas:
+
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[fecha_arribo_key]`
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[fecha_cas_key]`
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[plan_llegada_grupasa_key]`
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[plan_llegada_patio_key]`
+- `dim_fecha[fecha_key]` -> `fact_plan_actual[plan_devolucion_vacio_key]`
+
+## Power BI desde GitHub
+
+Si no cuentas con OneDrive ni SharePoint, Power BI debe consumir estos CSV usando el conector `Web` apuntando a las URLs `raw` de GitHub.
+
+Repositorio actual:
+
+- `https://github.com/sgarzong/grupasa`
+
+URLs raw sugeridas:
+
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/dim_contenedor.csv`
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/dim_fecha.csv`
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/dim_status.csv`
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/dim_bodega.csv`
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/fact_status_diario.csv`
+- `https://raw.githubusercontent.com/sgarzong/grupasa/main/data/powerbi/fact_plan_actual.csv`
+
+Recomendaciones:
+
+- usa `Obtener datos` -> `Web`
+- pega cada URL raw exacta
+- no uses rutas locales ni la pagina HTML de GitHub
+- no cambies nombres ni ubicaciones de estos CSV si ya montaste el modelo en Power BI
+- el refresh en Power BI Service sera de tipo import, no DirectQuery
 
 ## Bloqueo en Google Sheets
 
-El proyecto ya soporta protección automática en Google Sheets, pero requiere configuración adicional.
+El proyecto ya soporta proteccion automatica en Google Sheets, pero requiere configuracion adicional.
 
-Qué hace:
+Que hace:
 
-- después de una corrida exitosa
+- despues de una corrida exitosa
 - elimina protecciones previas administradas por el pipeline
 - vuelve a crear protecciones sobre las filas de datos de:
   - `Registro_Contenedores`
   - `Planif_Grupasa`
   - `Planif_Galagans`
 
-Suposición aplicada:
+Suposicion aplicada:
 
 - se bloquea la fila completa de datos cargada en cada una de esas hojas
 - `Status_Operativo` no se bloquea
 
-Qué necesitas configurar:
+Que necesitas configurar:
 
 1. Crear una service account en Google Cloud.
 2. Habilitar Google Sheets API en ese proyecto.
@@ -204,11 +266,11 @@ Qué necesitas configurar:
 Notas:
 
 - sin estas credenciales, el pipeline sigue funcionando en modo solo lectura
-- la fuente sigue siendo `SOURCE_XLSX_URL`, pero la protección usa el `spreadsheetId` extraído de esa URL
+- la fuente sigue siendo `SOURCE_XLSX_URL`, pero la proteccion usa el `spreadsheetId` extraido de esa URL
 
-## Conversión a Google Sheet nativo
+## Conversion a Google Sheet nativo
 
-Si el archivo fuente realmente es un documento Office almacenado en Drive y no un Google Sheet nativo, la protección de rangos no funcionará sobre ese archivo.
+Si el archivo fuente realmente es un documento Office almacenado en Drive y no un Google Sheet nativo, la proteccion de rangos no funcionara sobre ese archivo.
 
 Para ayudarte a migrarlo, existe el script:
 
@@ -222,9 +284,9 @@ Ese script:
 - si ya es nativo, te devuelve su URL correcta
 - si no es nativo, crea una copia Google Sheets y te devuelve la nueva URL exportable
 
-Después de eso debes actualizar `SOURCE_XLSX_URL` para apuntar al nuevo Google Sheet nativo.
+Despues de eso debes actualizar `SOURCE_XLSX_URL` para apuntar al nuevo Google Sheet nativo.
 
-## Configuración
+## Configuracion
 
 Copiar `.env.example` a `.env` si quieres parametrizar localmente.
 
@@ -237,7 +299,7 @@ Variables:
 - `GOOGLE_SHEETS_ENABLE_PROTECTION`: `true/false` para activar bloqueo post-pipeline
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: JSON completo de la cuenta de servicio con acceso editor al Google Sheet
 
-## Cómo cambiar la URL fuente
+## Como cambiar la URL fuente
 
 Editar `SOURCE_XLSX_URL` en `.env` o en las variables del repositorio en GitHub.
 
@@ -247,7 +309,7 @@ Ejemplo:
 SOURCE_XLSX_URL=https://docs.google.com/spreadsheets/d/<nuevo-id>/export?format=xlsx
 ```
 
-## Ejecución local
+## Ejecucion local
 
 ```powershell
 cd project
@@ -260,13 +322,6 @@ python -m src.main
 pytest
 ```
 
-## Power BI
-
-- `contenedores_actual.csv` es la tabla principal actual.
-- `status_historico.csv` soporta análisis temporal y permanencia por etapa.
-- `registro_congelado.csv` y `plan_galagans_congelado.csv` permiten auditoría de cambios diarios.
-- `errores_validacion.csv` puede mostrarse como tablero de calidad de datos.
-
 ## GitHub Actions
 
-El workflow corre cada día a las `15:00 UTC`, que equivale a `10:00 AM` hora Ecuador, y también soporta `workflow_dispatch`.
+El workflow corre cada dia a las `15:00 UTC`, que equivale a `10:00 AM` hora Ecuador, y tambien soporta `workflow_dispatch`.

@@ -12,7 +12,12 @@ from src.download_source import detect_header_rows, fetch_source_workbook, read_
 from src.export_outputs import export_csv
 from src.protect_sheet import protect_operational_rows
 from src.snapshot import append_daily_snapshot, upsert_latest_snapshot
-from src.transform import CURRENT_OUTPUT_COLUMNS, build_current_dataset
+from src.transform import (
+    CURRENT_OUTPUT_COLUMNS,
+    POWER_BI_TABLE_ORDER,
+    build_current_dataset,
+    build_powerbi_star_schema,
+)
 from src.validate import standardize_and_validate
 
 
@@ -37,6 +42,7 @@ def run_pipeline() -> int:
 
     pipeline_issues: list[dict[str, Any]] = []
     current_output = pd.DataFrame(columns=CURRENT_OUTPUT_COLUMNS)
+    powerbi_outputs = {table_name: pd.DataFrame() for table_name in POWER_BI_TABLE_ORDER}
 
     try:
         download_result = fetch_source_workbook(settings)
@@ -78,9 +84,20 @@ def run_pipeline() -> int:
             snapshot_date=settings.snapshot_date,
             cas_alert_days=settings.cas_alert_days,
         )
+        powerbi_outputs = build_powerbi_star_schema(
+            current_dataset=current_output,
+            status_history=status_history,
+            cas_alert_days=settings.cas_alert_days,
+        )
 
         all_issues = pd.concat([validation_errors, pd.DataFrame(pipeline_issues)], ignore_index=True, sort=False)
         export_csv(current_output, settings.contenedores_actual_path)
+        export_csv(powerbi_outputs["dim_contenedor"], settings.dim_contenedor_path)
+        export_csv(powerbi_outputs["dim_fecha"], settings.dim_fecha_path)
+        export_csv(powerbi_outputs["dim_status"], settings.dim_status_path)
+        export_csv(powerbi_outputs["dim_bodega"], settings.dim_bodega_path)
+        export_csv(powerbi_outputs["fact_status_diario"], settings.fact_status_diario_path)
+        export_csv(powerbi_outputs["fact_plan_actual"], settings.fact_plan_actual_path)
 
         try:
             protect_operational_rows(settings, standardized_sheets, header_rows)
@@ -103,6 +120,12 @@ def run_pipeline() -> int:
         logger.exception("Fallo controlado en pipeline: %s", exc)
         pipeline_issues.append(_build_pipeline_issue(settings.snapshot_date, "CRITICAL", "pipeline_failure", str(exc)))
         export_csv(current_output, settings.contenedores_actual_path)
+        export_csv(powerbi_outputs["dim_contenedor"], settings.dim_contenedor_path)
+        export_csv(powerbi_outputs["dim_fecha"], settings.dim_fecha_path)
+        export_csv(powerbi_outputs["dim_status"], settings.dim_status_path)
+        export_csv(powerbi_outputs["dim_bodega"], settings.dim_bodega_path)
+        export_csv(powerbi_outputs["fact_status_diario"], settings.fact_status_diario_path)
+        export_csv(powerbi_outputs["fact_plan_actual"], settings.fact_plan_actual_path)
         export_csv(pd.DataFrame(pipeline_issues), settings.errores_validacion_path)
         return 1
 

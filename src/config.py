@@ -27,6 +27,7 @@ class Settings:
     curated_dir: Path
     history_dir: Path
     quality_dir: Path
+    powerbi_dir: Path
     logs_dir: Path
     source_latest_path: Path
     source_archive_path: Path
@@ -35,6 +36,12 @@ class Settings:
     registro_congelado_path: Path
     plan_galagans_congelado_path: Path
     errores_validacion_path: Path
+    dim_contenedor_path: Path
+    dim_fecha_path: Path
+    dim_status_path: Path
+    dim_bodega_path: Path
+    fact_status_diario_path: Path
+    fact_plan_actual_path: Path
     log_file_path: Path
 
     @property
@@ -48,6 +55,7 @@ def get_settings() -> Settings:
     curated_dir = BASE_DIR / "data" / "curated"
     history_dir = BASE_DIR / "data" / "history"
     quality_dir = BASE_DIR / "data" / "quality"
+    powerbi_dir = BASE_DIR / "data" / "powerbi"
     logs_dir = BASE_DIR / "logs"
     timezone_name = os.getenv("TIMEZONE", "America/Guayaquil")
     snapshot_date = datetime.now(ZoneInfo(timezone_name)).date()
@@ -70,6 +78,7 @@ def get_settings() -> Settings:
         curated_dir=curated_dir,
         history_dir=history_dir,
         quality_dir=quality_dir,
+        powerbi_dir=powerbi_dir,
         logs_dir=logs_dir,
         source_latest_path=raw_dir / "source_latest.xlsx",
         source_archive_path=raw_dir / f"source_{snapshot_date.strftime('%Y%m%d')}.xlsx",
@@ -78,6 +87,12 @@ def get_settings() -> Settings:
         registro_congelado_path=history_dir / "registro_congelado.csv",
         plan_galagans_congelado_path=history_dir / "plan_galagans_congelado.csv",
         errores_validacion_path=quality_dir / "errores_validacion.csv",
+        dim_contenedor_path=powerbi_dir / "dim_contenedor.csv",
+        dim_fecha_path=powerbi_dir / "dim_fecha.csv",
+        dim_status_path=powerbi_dir / "dim_status.csv",
+        dim_bodega_path=powerbi_dir / "dim_bodega.csv",
+        fact_status_diario_path=powerbi_dir / "fact_status_diario.csv",
+        fact_plan_actual_path=powerbi_dir / "fact_plan_actual.csv",
         log_file_path=logs_dir / "pipeline.log",
     )
 
@@ -88,6 +103,7 @@ def ensure_directories(settings: Settings) -> None:
         settings.curated_dir,
         settings.history_dir,
         settings.quality_dir,
+        settings.powerbi_dir,
         settings.logs_dir,
     ):
         path.mkdir(parents=True, exist_ok=True)

@@ -58,6 +58,12 @@ jobs:
           registro = read_csv("data/history/registro_congelado.csv")
           plan = read_csv("data/history/plan_galagans_congelado.csv")
           quality = read_csv("data/quality/errores_validacion.csv")
+          dim_contenedor = read_csv("data/powerbi/dim_contenedor.csv")
+          dim_fecha = read_csv("data/powerbi/dim_fecha.csv")
+          dim_status = read_csv("data/powerbi/dim_status.csv")
+          dim_bodega = read_csv("data/powerbi/dim_bodega.csv")
+          fact_status = read_csv("data/powerbi/fact_status_diario.csv")
+          fact_plan = read_csv("data/powerbi/fact_plan_actual.csv")
 
           latest_snapshot = ""
           if not current.empty and "fecha_snapshot" in current.columns:
@@ -73,6 +79,12 @@ jobs:
               f"- Status history rows: `{len(status)}`",
               f"- Registro frozen rows: `{len(registro)}`",
               f"- Plan Galagans frozen rows: `{len(plan)}`",
+              f"- Power BI dim_contenedor rows: `{len(dim_contenedor)}`",
+              f"- Power BI dim_fecha rows: `{len(dim_fecha)}`",
+              f"- Power BI dim_status rows: `{len(dim_status)}`",
+              f"- Power BI dim_bodega rows: `{len(dim_bodega)}`",
+              f"- Power BI fact_status_diario rows: `{len(fact_status)}`",
+              f"- Power BI fact_plan_actual rows: `{len(fact_plan)}`",
               f"- Validation issues: `{max(len(quality) - 1, 0) if list(quality.columns) == ['fecha_snapshot','sheet_name','severity','error_code','contenedor_id','detail'] and quality.empty else len(quality)}`",
           ]
 

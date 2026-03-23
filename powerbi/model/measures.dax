@@ -1,52 +1,53 @@
 -- Base
-Contenedores = COUNTROWS(FactContenedoresActual)
+Contenedores = DISTINCTCOUNT(FactPlanActual[contenedor_id])
 
 Contenedores En Puerto =
 CALCULATE(
     [Contenedores],
-    FactContenedoresActual[status_actual] = "EN PUERTO"
+    DimStatus[status_stage] = "PUERTO"
 )
 
 Contenedores En Patio =
 CALCULATE(
     [Contenedores],
-    FactContenedoresActual[status_actual] = "EN PATIO GALAGANS"
+    DimStatus[status_stage] = "PATIO"
 )
 
-Contenedores Entregados =
+Contenedores En Bodega =
 CALCULATE(
     [Contenedores],
-    FactContenedoresActual[status_actual] = "ENTREGADO"
+    DimStatus[status_stage] = "BODEGA"
 )
 
 Alertas CAS =
 CALCULATE(
     [Contenedores],
-    FactContenedoresActual[alerta_cas] = TRUE()
+    FactPlanActual[alerta_cas] = TRUE()
 )
 
 CAS Vencidos =
 CALCULATE(
     [Contenedores],
-    FactContenedoresActual[cas_vencido] = TRUE()
+    FactPlanActual[cas_vencido] = TRUE()
 )
 
 Incidencias =
 CALCULATE(
     [Contenedores],
-    NOT ISBLANK(FactContenedoresActual[tipo_incidencia]),
-    FactContenedoresActual[tipo_incidencia] <> "SIN NOVEDAD"
+    NOT ISBLANK(FactStatusDiario[tipo_incidencia]),
+    FactStatusDiario[tipo_incidencia] <> "",
+    FactStatusDiario[es_ultimo_status] = TRUE()
 )
 
 Pct Cumplimiento Grupasa =
 DIVIDE(
     CALCULATE(
         [Contenedores],
-        FactContenedoresActual[cumplimiento_grupasa] = "CUMPLE"
+        FactPlanActual[cumplimiento_grupasa] = "CUMPLE"
     ),
     CALCULATE(
         [Contenedores],
-        FactContenedoresActual[cumplimiento_grupasa] IN {"CUMPLE", "INCUMPLE"}
+        FactPlanActual[cumplimiento_grupasa] IN {"CUMPLE", "INCUMPLE"}
     )
 )
 
@@ -54,42 +55,32 @@ Pct Cumplimiento Galagans =
 DIVIDE(
     CALCULATE(
         [Contenedores],
-        FactContenedoresActual[cumplimiento_galagans] = "CUMPLE"
+        FactPlanActual[cumplimiento_galagans] = "CUMPLE"
     ),
     CALCULATE(
         [Contenedores],
-        FactContenedoresActual[cumplimiento_galagans] IN {"CUMPLE", "INCUMPLE"}
+        FactPlanActual[cumplimiento_galagans] IN {"CUMPLE", "INCUMPLE"}
     )
 )
 
-Dias Prom Puerto a Patio =
-AVERAGE(FactContenedoresActual[dias_puerto_a_patio])
+Dias Prom Puerto a Patio = AVERAGE(FactPlanActual[dias_puerto_a_patio])
 
-Dias Prom Patio a Bodega =
-AVERAGE(FactContenedoresActual[dias_patio_a_bodega])
+Dias Prom Patio a Bodega = AVERAGE(FactPlanActual[dias_patio_a_bodega])
 
-Dias Prom Bodega a Deposito =
-AVERAGE(FactContenedoresActual[dias_bodega_a_deposito])
+Dias Prom Bodega a Deposito = AVERAGE(FactPlanActual[dias_bodega_a_deposito])
 
 Errores Validacion = COUNTROWS(FactErroresValidacion)
 
-Snapshots Status =
-COUNTROWS(FactStatusHistorico)
+Snapshots Status = COUNTROWS(FactStatusDiario)
 
-Contenedores Unicos Historico =
-DISTINCTCOUNT(FactStatusHistorico[contenedor_id])
-
-Entregados Historico =
-CALCULATE(
-    DISTINCTCOUNT(FactStatusHistorico[contenedor_id]),
-    FactStatusHistorico[status_actual] = "ENTREGADO"
-)
+Contenedores Unicos Historico = DISTINCTCOUNT(FactStatusDiario[contenedor_id])
 
 Contenedores con Incidencia =
 CALCULATE(
-    DISTINCTCOUNT(FactContenedoresActual[contenedor_id]),
-    NOT ISBLANK(FactContenedoresActual[tipo_incidencia]),
-    FactContenedoresActual[tipo_incidencia] <> "SIN NOVEDAD"
+    DISTINCTCOUNT(FactStatusDiario[contenedor_id]),
+    NOT ISBLANK(FactStatusDiario[tipo_incidencia]),
+    FactStatusDiario[tipo_incidencia] <> "",
+    FactStatusDiario[es_ultimo_status] = TRUE()
 )
 
 Semaforo CAS =
@@ -100,5 +91,4 @@ SWITCH(
     "Verde"
 )
 
-Ultima Fecha Snapshot =
-MAX(FactContenedoresActual[fecha_snapshot])
+Ultima Fecha Snapshot = MAX(FactPlanActual[fecha_snapshot])
