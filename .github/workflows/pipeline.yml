@@ -36,10 +36,72 @@ jobs:
       - name: Run tests
         run: pytest
 
+      - name: Publish run summary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          import os
+
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+
+          def read_csv(path_str: str) -> pd.DataFrame:
+              path = Path(path_str)
+              if not path.exists():
+                  return pd.DataFrame()
+              return pd.read_csv(path)
+
+          current = read_csv("data/curated/contenedores_actual.csv")
+          status = read_csv("data/history/status_historico.csv")
+          registro = read_csv("data/history/registro_congelado.csv")
+          plan = read_csv("data/history/plan_galagans_congelado.csv")
+          quality = read_csv("data/quality/errores_validacion.csv")
+
+          latest_snapshot = ""
+          if not current.empty and "fecha_snapshot" in current.columns:
+              latest_snapshot = str(current["fecha_snapshot"].max())
+          elif not status.empty and "fecha_snapshot" in status.columns:
+              latest_snapshot = str(status["fecha_snapshot"].max())
+
+          lines = [
+              "# Pipeline Summary",
+              "",
+              f"- Latest snapshot date: `{latest_snapshot or 'n/a'}`",
+              f"- Current containers: `{len(current)}`",
+              f"- Status history rows: `{len(status)}`",
+              f"- Registro frozen rows: `{len(registro)}`",
+              f"- Plan Galagans frozen rows: `{len(plan)}`",
+              f"- Validation issues: `{max(len(quality) - 1, 0) if list(quality.columns) == ['fecha_snapshot','sheet_name','severity','error_code','contenedor_id','detail'] and quality.empty else len(quality)}`",
+          ]
+
+          if not quality.empty:
+              lines.extend(
+                  [
+                      "",
+                      "## Validation Issue Breakdown",
+                      "",
+                  ]
+              )
+              breakdown = (
+                  quality.groupby(["severity", "error_code"], dropna=False)
+                  .size()
+                  .reset_index(name="count")
+                  .sort_values(["severity", "error_code"])
+              )
+              for row in breakdown.itertuples(index=False):
+                  lines.append(f"- `{row.severity}` / `{row.error_code}`: `{row.count}`")
+
+          summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Commit generated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data logs
-          git diff --cached --quiet || git commit -m "chore: refresh logistics snapshots"
-          git push
+          if git diff --cached --quiet; then
+            echo "No generated file changes to commit."
+          else
+            git commit -m "chore: refresh logistics snapshots"
+            git push
+          fi
