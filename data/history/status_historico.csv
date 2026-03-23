@@ -1,0 +1,14 @@
+fecha_snapshot,contenedor_id,status_actual,horario_entrega_real,tipo_incidencia,comentario_status
+2026-03-18,MSCU1234567,EN PUERTO,,,Pendiente retiro
+2026-03-19,MSCU1234567,EN PUERTO,,,Pendiente retiro
+2026-03-20,MSCU1234567,EN PUERTO,,,Pendiente retiro
+2026-03-16,TGHU7654321,EN PUERTO,,,Programado
+2026-03-18,TGHU7654321,EN PATIO,,,Ingreso a patio
+2026-03-21,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio
+2026-03-14,OOLU1111111,EN PUERTO,,,Inicio de ciclo
+2026-03-15,OOLU1111111,EN PATIO,,,Descarga de puerto
+2026-03-18,OOLU1111111,EN BODEGA,,,Descarga en bodega
+2026-03-20,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo
+2026-03-22,MSCU1234567,EN PUERTO,,,Pendiente retiro
+2026-03-22,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio
+2026-03-22,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo

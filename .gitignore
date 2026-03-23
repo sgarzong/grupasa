@@ -1,0 +1,10 @@
+.env
+.pytest_cache/
+pytest-cache-files-*/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+logs/*.log
+data/raw/source_latest.xlsx
+data/raw/source_*.xlsx
