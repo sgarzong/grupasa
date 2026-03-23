@@ -1,7 +1,8 @@
-contenedor_id,plan_llegada_patio,plan_devolucion_vacio,comentario_plan_galagans,plan_llegada_grupasa,hora_descarga,fecha_snapshot
-MSCU1234567,2026-03-20,2026-03-28,Patio 1,,,2026-03-21
-TGHU7654321,2026-03-18,2026-03-24,Patio 2,,,2026-03-21
-OOLU1111111,2026-03-15,2026-03-21,Patio 3,,,2026-03-21
-MSCU1234567,2026-03-20,2026-03-28,Patio 1,,,2026-03-22
-TGHU7654321,2026-03-18,2026-03-24,Patio 2,,,2026-03-22
-OOLU1111111,2026-03-15,2026-03-21,Patio 3,,,2026-03-22
+contenedor_id,plan_llegada_patio,plan_devolucion_vacio,comentario_plan_galagans,plan_llegada_grupasa,hora_descarga,fecha_snapshot,3._planificacion_galagans,unnamed:_1,unnamed:_2,unnamed:_3,unnamed:_4,unnamed:_5,unnamed:_6,unnamed:_7,unnamed:_8,unnamed:_9
+MSCU1234567,2026-03-20,2026-03-28,Patio 1,,,2026-03-21,,,,,,,,,,
+TGHU7654321,2026-03-18,2026-03-24,Patio 2,,,2026-03-21,,,,,,,,,,
+OOLU1111111,2026-03-15,2026-03-21,Patio 3,,,2026-03-21,,,,,,,,,,
+MSCU1234567,2026-03-20,2026-03-28,Patio 1,,,2026-03-22,,,,,,,,,,
+TGHU7654321,2026-03-18,2026-03-24,Patio 2,,,2026-03-22,,,,,,,,,,
+OOLU1111111,2026-03-15,2026-03-21,Patio 3,,,2026-03-22,,,,,,,,,,
+,,,,,,2026-03-22,HLBU5543219,PED-260405,HALO,CGSA,2026-04-11 00:00:00,09:15,MEDLOG,2026-04-09 00:00:00,2026-04-16 00:00:00,Patio prioriza este contenedor

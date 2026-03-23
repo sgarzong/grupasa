@@ -1,14 +1,15 @@
-fecha_snapshot,contenedor_id,status_actual,horario_entrega_real,tipo_incidencia,comentario_status
-2026-03-18,MSCU1234567,EN PUERTO,,,Pendiente retiro
-2026-03-19,MSCU1234567,EN PUERTO,,,Pendiente retiro
-2026-03-20,MSCU1234567,EN PUERTO,,,Pendiente retiro
-2026-03-16,TGHU7654321,EN PUERTO,,,Programado
-2026-03-18,TGHU7654321,EN PATIO,,,Ingreso a patio
-2026-03-21,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio
-2026-03-14,OOLU1111111,EN PUERTO,,,Inicio de ciclo
-2026-03-15,OOLU1111111,EN PATIO,,,Descarga de puerto
-2026-03-18,OOLU1111111,EN BODEGA,,,Descarga en bodega
-2026-03-20,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo
-2026-03-22,MSCU1234567,EN PUERTO,,,Pendiente retiro
-2026-03-22,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio
-2026-03-22,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo
+fecha_snapshot,contenedor_id,status_actual,horario_entrega_real,tipo_incidencia,comentario_status,4._status_operativo,unnamed:_1,unnamed:_2,unnamed:_3,unnamed:_4,unnamed:_5,unnamed:_6,unnamed:_7,unnamed:_8,unnamed:_9,unnamed:_10,unnamed:_11,unnamed:_12
+2026-03-18,MSCU1234567,EN PUERTO,,,Pendiente retiro,,,,,,,,,,,,,
+2026-03-19,MSCU1234567,EN PUERTO,,,Pendiente retiro,,,,,,,,,,,,,
+2026-03-20,MSCU1234567,EN PUERTO,,,Pendiente retiro,,,,,,,,,,,,,
+2026-03-16,TGHU7654321,EN PUERTO,,,Programado,,,,,,,,,,,,,
+2026-03-18,TGHU7654321,EN PATIO,,,Ingreso a patio,,,,,,,,,,,,,
+2026-03-21,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio,,,,,,,,,,,,,
+2026-03-14,OOLU1111111,EN PUERTO,,,Inicio de ciclo,,,,,,,,,,,,,
+2026-03-15,OOLU1111111,EN PATIO,,,Descarga de puerto,,,,,,,,,,,,,
+2026-03-18,OOLU1111111,EN BODEGA,,,Descarga en bodega,,,,,,,,,,,,,
+2026-03-20,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo,,,,,,,,,,,,,
+2026-03-22,MSCU1234567,EN PUERTO,,,Pendiente retiro,,,,,,,,,,,,,
+2026-03-22,TGHU7654321,EN BODEGA,,DEMORA,Llego tarde al patio,,,,,,,,,,,,,
+2026-03-22,OOLU1111111,DEVUELTO DEPOSITO VACIO,,,Ciclo completo,,,,,,,,,,,,,
+2026-03-22,,,,,,HLBU5543219,PED-260405,HALO,CGSA,2026-04-19 00:00:00,2026-04-11 00:00:00,09:15,2026-04-16 00:00:00,MEDLOG,EN PATIO GALAGANS,,SIN NOVEDAD,Vacío ya devuelto

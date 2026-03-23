@@ -1,7 +1,8 @@
-contenedor_id,pedido,parcial,naviera,puerto,deposito_vacio,fecha_arribo,fecha_cas,fecha_snapshot
-MSCU1234567,PED-001,P1,MSC,Guayaquil,Depo Norte,2026-03-18,2026-03-24,2026-03-21
-TGHU7654321,PED-002,P2,MAERSK,Posorja,Depo Sur,2026-03-16,2026-03-20,2026-03-21
-OOLU1111111,PED-003,P1,OOCL,Guayaquil,Depo Norte,2026-03-14,2026-03-21,2026-03-21
-MSCU1234567,PED-001,P1,MSC,Guayaquil,Depo Norte,2026-03-18,2026-03-24,2026-03-22
-TGHU7654321,PED-002,P2,MAERSK,Posorja,Depo Sur,2026-03-16,2026-03-20,2026-03-22
-OOLU1111111,PED-003,P1,OOCL,Guayaquil,Depo Norte,2026-03-14,2026-03-21,2026-03-22
+contenedor_id,pedido,parcial,naviera,puerto,deposito_vacio,fecha_arribo,fecha_cas,fecha_snapshot,1._registro_de_contenedores,unnamed:_1,unnamed:_2,unnamed:_3,unnamed:_4,unnamed:_5,unnamed:_6,unnamed:_7,unnamed:_8,unnamed:_9,unnamed:_10,unnamed:_11
+MSCU1234567,PED-001,P1,MSC,Guayaquil,Depo Norte,2026-03-18,2026-03-24,2026-03-21,,,,,,,,,,,,
+TGHU7654321,PED-002,P2,MAERSK,Posorja,Depo Sur,2026-03-16,2026-03-20,2026-03-21,,,,,,,,,,,,
+OOLU1111111,PED-003,P1,OOCL,Guayaquil,Depo Norte,2026-03-14,2026-03-21,2026-03-21,,,,,,,,,,,,
+MSCU1234567,PED-001,P1,MSC,Guayaquil,Depo Norte,2026-03-18,2026-03-24,2026-03-22,,,,,,,,,,,,
+TGHU7654321,PED-002,P2,MAERSK,Posorja,Depo Sur,2026-03-16,2026-03-20,2026-03-22,,,,,,,,,,,,
+OOLU1111111,PED-003,P1,OOCL,Guayaquil,Depo Norte,2026-03-14,2026-03-21,2026-03-22,,,,,,,,,,,,
+,,,,,,,,2026-03-22,HLBU5543219,PED-260405,P-03,BLGYE0105,HALO,20,Masterbatch,CGSA,2026-04-05 00:00:00,2026-04-19 00:00:00,MEDLOG,
