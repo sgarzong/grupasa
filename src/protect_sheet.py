@@ -12,6 +12,10 @@ from src.config import Settings
 
 LOGGER = logging.getLogger(__name__)
 MANAGED_PROTECTION_PREFIX = "grupasa-pipeline-managed"
+LOCKED_BACKGROUND_COLOR = {"red": 0.85, "green": 0.85, "blue": 0.85}
+LOCKED_TEXT_COLOR = {"red": 0.33, "green": 0.33, "blue": 0.33}
+DEFAULT_BACKGROUND_COLOR = {"red": 1.0, "green": 1.0, "blue": 1.0}
+DEFAULT_TEXT_COLOR = {"red": 0.0, "green": 0.0, "blue": 0.0}
 TARGET_SHEETS = [
     "Registro_Contenedores",
     "Planif_Grupasa",
@@ -41,8 +45,11 @@ def protect_operational_rows(
     existing_protections = _collect_managed_protections(spreadsheet)
     requests: list[dict[str, Any]] = []
 
-    for protection_id in existing_protections:
-        requests.append({"deleteProtectedRange": {"protectedRangeId": protection_id}})
+    for protection in existing_protections:
+        protection_range = protection.get("range", {})
+        if protection_range:
+            requests.append(_build_format_request(protection_range, DEFAULT_BACKGROUND_COLOR, DEFAULT_TEXT_COLOR))
+        requests.append({"deleteProtectedRange": {"protectedRangeId": protection["protectedRangeId"]}})
 
     sheet_meta_by_name = {
         sheet["properties"]["title"]: sheet["properties"]
@@ -61,18 +68,21 @@ def protect_operational_rows(
         end_row_index = header_row + 1 + len(df)
         end_column_index = len(df.columns)
         sheet_id = sheet_meta_by_name[sheet_name]["sheetId"]
+        target_range = {
+            "sheetId": sheet_id,
+            "startRowIndex": start_row_index,
+            "endRowIndex": end_row_index,
+            "startColumnIndex": 0,
+            "endColumnIndex": end_column_index,
+        }
+
+        requests.append(_build_format_request(target_range, LOCKED_BACKGROUND_COLOR, LOCKED_TEXT_COLOR))
 
         requests.append(
             {
                 "addProtectedRange": {
                     "protectedRange": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": start_row_index,
-                            "endRowIndex": end_row_index,
-                            "startColumnIndex": 0,
-                            "endColumnIndex": end_column_index,
-                        },
+                        "range": target_range,
                         "description": f"{MANAGED_PROTECTION_PREFIX}:{sheet_name}",
                         "warningOnly": False,
                     }
@@ -111,10 +121,31 @@ def _build_sheets_service(service_account_json: str):
 
 
 def _collect_managed_protections(spreadsheet: dict[str, Any]) -> list[int]:
-    protection_ids: list[int] = []
+    protections: list[dict[str, Any]] = []
     for sheet in spreadsheet.get("sheets", []):
         for protection in sheet.get("protectedRanges", []):
             description = protection.get("description", "")
             if description.startswith(MANAGED_PROTECTION_PREFIX):
-                protection_ids.append(protection["protectedRangeId"])
-    return protection_ids
+                protections.append(protection)
+    return protections
+
+
+def _build_format_request(
+    target_range: dict[str, Any],
+    background_color: dict[str, float],
+    text_color: dict[str, float],
+) -> dict[str, Any]:
+    return {
+        "repeatCell": {
+            "range": target_range,
+            "cell": {
+                "userEnteredFormat": {
+                    "backgroundColor": background_color,
+                    "textFormat": {
+                        "foregroundColor": text_color,
+                    },
+                }
+            },
+            "fields": "userEnteredFormat(backgroundColor,textFormat.foregroundColor)",
+        }
+    }
