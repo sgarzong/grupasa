@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.validate import standardize_and_validate
+from src.validate import coerce_excel_date, standardize_and_validate
 
 
 def test_validate_detects_business_rule_errors() -> None:
@@ -74,3 +74,7 @@ def test_validate_detects_business_rule_errors() -> None:
     assert "duplicate_contenedor_id" in error_codes
     assert "horario_entrega_invalido" in error_codes
     assert "entregado_sin_horario" in error_codes
+
+
+def test_coerce_excel_date_handles_excel_serial() -> None:
+    assert str(coerce_excel_date(46127)) == "2026-04-15"

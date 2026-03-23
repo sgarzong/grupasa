@@ -56,11 +56,15 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
     "Registro_Contenedores": {
         "contenedor": "contenedor_id",
         "contenedor_id": "contenedor_id",
+        "id_contenedor": "contenedor_id",
         "container": "contenedor_id",
         "container_id": "contenedor_id",
         "pedido": "pedido",
         "parcial": "parcial",
+        "bl": "bl",
         "naviera": "naviera",
+        "tipo_contenedor": "tipo_contenedor",
+        "producto": "producto",
         "puerto": "puerto",
         "puerto_operacion": "puerto",
         "deposito_vacio": "deposito_vacio",
@@ -73,8 +77,14 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
     "Planif_Grupasa": {
         "contenedor": "contenedor_id",
         "contenedor_id": "contenedor_id",
+        "id_contenedor": "contenedor_id",
         "plan_llegada_grupasa": "plan_llegada_grupasa",
         "plan_llegada": "plan_llegada_grupasa",
+        "fecha_cas": "fecha_cas",
+        "pedido": "pedido",
+        "naviera": "naviera",
+        "puerto": "puerto",
+        "deposito_vacio": "deposito_vacio",
         "bodega": "bodega",
         "hora_descarga": "hora_descarga",
         "comentario_plan": "comentario_plan_grupasa",
@@ -83,8 +93,13 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
     "Planif_Galagans": {
         "contenedor": "contenedor_id",
         "contenedor_id": "contenedor_id",
+        "id_contenedor": "contenedor_id",
+        "pedido": "pedido",
+        "naviera": "naviera",
+        "puerto": "puerto",
         "plan_llegada_grupasa": "plan_llegada_grupasa",
         "hora_descarga": "hora_descarga",
+        "deposito_vacio": "deposito_vacio",
         "plan_llegada_patio": "plan_llegada_patio",
         "plan_devolucion_vacio": "plan_devolucion_vacio",
         "comentario_plan": "comentario_plan_galagans",
@@ -93,6 +108,15 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
     "Status_Operativo": {
         "contenedor": "contenedor_id",
         "contenedor_id": "contenedor_id",
+        "id_contenedor": "contenedor_id",
+        "pedido": "pedido",
+        "naviera": "naviera",
+        "puerto": "puerto",
+        "fecha_cas": "fecha_cas",
+        "plan_llegada_grupasa": "plan_llegada_grupasa",
+        "hora_descarga": "hora_descarga",
+        "plan_devolucion_vacio": "plan_devolucion_vacio",
+        "deposito_vacio": "deposito_vacio",
         "status_actual": "status_actual",
         "status": "status_actual",
         "horario_entrega_real": "horario_entrega_real",
@@ -103,6 +127,7 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
     "Control_Calidad": {
         "contenedor": "contenedor_id",
         "contenedor_id": "contenedor_id",
+        "id_contenedor": "contenedor_id",
         "regla": "regla",
         "detalle": "detalle",
     },
@@ -110,8 +135,9 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
 
 DATE_COLUMNS = {
     "Registro_Contenedores": ["fecha_arribo", "fecha_cas"],
-    "Planif_Grupasa": ["plan_llegada_grupasa"],
+    "Planif_Grupasa": ["fecha_cas", "plan_llegada_grupasa"],
     "Planif_Galagans": ["plan_llegada_grupasa", "plan_llegada_patio", "plan_devolucion_vacio"],
+    "Status_Operativo": ["fecha_cas", "plan_llegada_grupasa", "plan_devolucion_vacio"],
 }
 
 TEXT_COLUMNS = {
@@ -210,7 +236,7 @@ def _coerce_types(df: pd.DataFrame, sheet_name: str) -> pd.DataFrame:
     coerced = df.copy()
     for column in DATE_COLUMNS.get(sheet_name, []):
         if column in coerced.columns:
-            coerced[column] = pd.to_datetime(coerced[column], errors="coerce").dt.date
+            coerced[column] = coerced[column].apply(coerce_excel_date)
 
     for column in TEXT_COLUMNS.get(sheet_name, []):
         if column in coerced.columns:
@@ -254,6 +280,8 @@ def _validate_sheet_rules(
 ) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     if df.empty:
+        return issues
+    if sheet_name == "Control_Calidad":
         return issues
 
     if "contenedor_id" in df.columns:
@@ -340,3 +368,23 @@ def normalize_name(value: object) -> str:
     while "__" in text:
         text = text.replace("__", "_")
     return text.strip("_")
+
+
+def coerce_excel_date(value: object) -> object:
+    if pd.isna(value) or value == "":
+        return pd.NaT
+    if isinstance(value, pd.Timestamp):
+        return value.date()
+    if hasattr(value, "year") and hasattr(value, "month") and hasattr(value, "day") and not isinstance(value, str):
+        return value
+
+    if isinstance(value, (int, float)) and not pd.isna(value):
+        if 20000 <= float(value) <= 60000:
+            converted = pd.to_datetime("1899-12-30") + pd.to_timedelta(float(value), unit="D")
+            return converted.date()
+
+    text = str(value).strip()
+    converted = pd.to_datetime(text, errors="coerce")
+    if not pd.isna(converted):
+        return converted.date()
+    return pd.NaT

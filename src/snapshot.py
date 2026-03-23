@@ -20,6 +20,7 @@ def append_daily_snapshot(
 
     if history_path.exists():
         existing = pd.read_csv(history_path)
+        existing = existing.reindex(columns=snapshot_df.columns)
     else:
         existing = pd.DataFrame(columns=snapshot_df.columns)
 
