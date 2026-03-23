@@ -194,16 +194,35 @@ Qué necesitas configurar:
 
 1. Crear una service account en Google Cloud.
 2. Habilitar Google Sheets API en ese proyecto.
-3. Compartir el Google Sheet con el email de la service account como `Editor`.
-4. Guardar el JSON completo de la credencial en GitHub Secret:
+3. Habilitar Google Drive API en ese proyecto.
+4. Compartir el Google Sheet con el email de la service account como `Editor`.
+5. Guardar el JSON completo de la credencial en GitHub Secret:
    - `GOOGLE_SERVICE_ACCOUNT_JSON`
-5. Crear la variable de repositorio:
+6. Crear la variable de repositorio:
    - `GOOGLE_SHEETS_ENABLE_PROTECTION=true`
 
 Notas:
 
 - sin estas credenciales, el pipeline sigue funcionando en modo solo lectura
 - la fuente sigue siendo `SOURCE_XLSX_URL`, pero la protección usa el `spreadsheetId` extraído de esa URL
+
+## Conversión a Google Sheet nativo
+
+Si el archivo fuente realmente es un documento Office almacenado en Drive y no un Google Sheet nativo, la protección de rangos no funcionará sobre ese archivo.
+
+Para ayudarte a migrarlo, existe el script:
+
+```powershell
+python .\scripts\convert_source_to_native_sheet.py --service-account-json "<ruta-json>" --source-url "<url-export-xlsx>"
+```
+
+Ese script:
+
+- inspecciona el archivo fuente en Drive
+- si ya es nativo, te devuelve su URL correcta
+- si no es nativo, crea una copia Google Sheets y te devuelve la nueva URL exportable
+
+Después de eso debes actualizar `SOURCE_XLSX_URL` para apuntar al nuevo Google Sheet nativo.
 
 ## Configuración
 
