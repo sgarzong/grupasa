@@ -17,9 +17,11 @@ def test_build_protection_batches_deletes_then_formats_then_protects() -> None:
     existing = [{"protectedRangeId": 11, "range": {"sheetId": 1, "startRowIndex": 3, "endRowIndex": 5}}]
     targets = [{"sheet_name": "Registro_Contenedores", "range": {"sheetId": 1, "startRowIndex": 3, "endRowIndex": 5}}]
 
-    batches = _build_protection_batches(existing, targets)
+    batches = _build_protection_batches(existing, targets, "svc@example.com")
 
     assert len(batches) == 3
     assert list(batches[0][0].keys()) == ["deleteProtectedRange"]
     assert list(batches[1][0].keys()) == ["repeatCell"]
     assert list(batches[2][0].keys()) == ["addProtectedRange"]
+    protected_range = batches[2][0]["addProtectedRange"]["protectedRange"]
+    assert protected_range["editors"]["users"] == ["svc@example.com"]

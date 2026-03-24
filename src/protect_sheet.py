@@ -40,7 +40,9 @@ def protect_operational_rows(
         LOGGER.warning("No se pudo extraer spreadsheet_id desde SOURCE_XLSX_URL")
         return
 
-    service = _build_sheets_service(settings.google_service_account_json)
+    credentials_info = json.loads(settings.google_service_account_json)
+    service_account_email = credentials_info.get("client_email", "").strip()
+    service = _build_sheets_service(credentials_info)
     spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     existing_protections = _collect_managed_protections(spreadsheet)
     sheet_meta_by_name = {
@@ -70,16 +72,24 @@ def protect_operational_rows(
         }
         target_ranges.append({"sheet_name": sheet_name, "range": target_range})
 
-    batches = _build_protection_batches(existing_protections, target_ranges)
+    batches = _build_protection_batches(existing_protections, target_ranges, service_account_email)
     if not batches:
         LOGGER.info("No hay solicitudes de proteccion para enviar")
         return
 
-    for requests in batches:
-        service.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests": requests},
-        ).execute()
+    try:
+        for requests in batches:
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": requests},
+            ).execute()
+    except Exception as exc:
+        raise RuntimeError(
+            "No se pudieron actualizar las protecciones. "
+            "Si existen protecciones previas creadas manualmente o por otro usuario, "
+            "borralas una sola vez desde Google Sheets y vuelve a correr el pipeline. "
+            f"Detalle original: {exc}"
+        ) from exc
     LOGGER.info("Protecciones actualizadas en Google Sheets para %s hojas", len(TARGET_SHEETS))
 
 
@@ -90,11 +100,10 @@ def extract_spreadsheet_id(url: str) -> str | None:
     return None
 
 
-def _build_sheets_service(service_account_json: str):
+def _build_sheets_service(credentials_info: dict[str, Any]):
     from google.oauth2.service_account import Credentials
     from googleapiclient.discovery import build
 
-    credentials_info = json.loads(service_account_json)
     credentials = Credentials.from_service_account_info(
         credentials_info,
         scopes=["https://www.googleapis.com/auth/spreadsheets"],
@@ -115,6 +124,7 @@ def _collect_managed_protections(spreadsheet: dict[str, Any]) -> list[int]:
 def _build_protection_batches(
     existing_protections: list[dict[str, Any]],
     target_ranges: list[dict[str, Any]],
+    service_account_email: str,
 ) -> list[list[dict[str, Any]]]:
     delete_requests: list[dict[str, Any]] = []
     reset_requests: list[dict[str, Any]] = []
@@ -137,6 +147,9 @@ def _build_protection_batches(
                         "range": target_range,
                         "description": f"{MANAGED_PROTECTION_PREFIX}:{target['sheet_name']}",
                         "warningOnly": False,
+                        "editors": {
+                            "users": [service_account_email] if service_account_email else [],
+                        },
                     }
                 }
             }
