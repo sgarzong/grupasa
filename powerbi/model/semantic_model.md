@@ -16,8 +16,8 @@ Grano: una fila por contenedor.
 
 Uso:
 
-- slicers por naviera, puerto, deposito, pedido y parcial
-- dimension principal para ambas tablas de hechos
+- slicers por pedido, parcial, naviera, puerto y deposito
+- dimension principal para ambos hechos
 
 ### `DimFecha`
 
@@ -27,7 +27,7 @@ Uso:
 
 - filtros temporales
 - tendencias
-- relaciones activas e inactivas con la tabla de plan actual
+- relaciones activas e inactivas con `FactPlanActual`
 
 ### `DimStatus`
 
@@ -36,7 +36,7 @@ Grano: una fila por status.
 Uso:
 
 - slicers por status
-- agrupacion por etapa derivada (`PUERTO`, `PATIO`, `BODEGA`, `DEPOSITO`)
+- agrupacion por etapa derivada
 
 ### `DimBodega`
 
@@ -52,21 +52,28 @@ Grano: una fila por contenedor por `fecha_snapshot`.
 
 Uso:
 
-- tendencia diaria por status
-- evolucion del contenedor
-- alertas CAS historicas
+- evolucion diaria de status
 - incidencias por dia
+- alertas CAS historicas
 
 ### `FactPlanActual`
 
-Grano: una fila por contenedor en la foto mas reciente.
+Grano: una fila por contenedor en la foto vigente.
 
 Uso:
 
 - KPIs ejecutivos
-- cumplimiento Grupasa / Galagans
+- cumplimiento
 - tiempos entre etapas
-- detalle operativo actual
+- detalle actual
+- analisis de reasignacion de slots Grupasa
+
+Campos clave de esta version:
+
+- `fecha_arribo_gye`
+- `fecha_salida_autorizada`
+- `plan_slot_grupasa`
+- `tipo_asignacion_grupasa`
 
 ### `FactErroresValidacion`
 
@@ -74,7 +81,7 @@ Grano: una fila por error de validacion.
 
 Uso:
 
-- pagina de calidad de datos
+- pagina de calidad
 - monitoreo del pipeline
 
 ## Relaciones
@@ -90,14 +97,17 @@ Uso:
 
 Relaciones recomendadas como inactivas:
 
+- `DimFecha[fecha_key]` 1:* `FactPlanActual[fecha_arribo_gye_key]`
+- `DimFecha[fecha_key]` 1:* `FactPlanActual[fecha_salida_autorizada_key]`
 - `DimFecha[fecha_key]` 1:* `FactPlanActual[fecha_arribo_key]`
 - `DimFecha[fecha_key]` 1:* `FactPlanActual[fecha_cas_key]`
 - `DimFecha[fecha_key]` 1:* `FactPlanActual[plan_llegada_grupasa_key]`
 - `DimFecha[fecha_key]` 1:* `FactPlanActual[plan_llegada_patio_key]`
 - `DimFecha[fecha_key]` 1:* `FactPlanActual[plan_devolucion_vacio_key]`
 
-Recomendacion:
+## Recomendacion
 
 - relaciones de filtro simple desde dimensiones a hechos
 - no crear relaciones directas entre hechos
-- usar `USERELATIONSHIP` cuando necesites activar una fecha alternativa en medidas
+- usar `USERELATIONSHIP` para activar fechas alternativas en medidas
+- usar `tipo_asignacion_grupasa` para separar contenedores reasignados vs plan directo

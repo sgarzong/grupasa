@@ -2,7 +2,7 @@
 
 ## Pagina 1: Resumen Ejecutivo
 
-Objetivo: ver estado operativo del dia en 15 segundos.
+Objetivo: ver estado operativo del dia en segundos.
 
 Visuales:
 
@@ -16,22 +16,7 @@ Visuales:
 - KPI: `Pct Cumplimiento Galagans`
 - Columna apilada: contenedores por `DimStatus[status_actual]`
 - Barra horizontal: contenedores por `DimContenedor[naviera]`
-- Tabla corta:
-  - `FactPlanActual[contenedor_id]`
-  - `DimContenedor[pedido]`
-  - `DimContenedor[puerto]`
-  - `DimContenedor[naviera]`
-  - `FactPlanActual[fecha_cas]`
-  - `DimStatus[status_actual]`
-  - `FactPlanActual[alerta_cas]`
-  - `FactPlanActual[cas_vencido]`
-
-Filtros:
-
-- `FactPlanActual[fecha_snapshot]`
-- `DimContenedor[puerto]`
-- `DimContenedor[naviera]`
-- `DimStatus[status_actual]`
+- Donut: contenedores por `FactPlanActual[tipo_asignacion_grupasa]`
 
 ## Pagina 2: Seguimiento Operativo
 
@@ -39,28 +24,30 @@ Objetivo: priorizar la operacion del dia.
 
 Visuales:
 
-- Matriz de detalle con:
+- Matriz con:
   - `FactPlanActual[contenedor_id]`
   - `DimContenedor[pedido]`
   - `DimContenedor[parcial]`
   - `DimContenedor[puerto]`
   - `DimContenedor[naviera]`
-  - `DimContenedor[deposito_vacio]`
+  - `FactPlanActual[fecha_arribo_gye]`
+  - `FactPlanActual[fecha_salida_autorizada]`
+  - `FactPlanActual[fecha_arribo]`
+  - `FactPlanActual[fecha_cas]`
   - `FactPlanActual[plan_llegada_grupasa]`
-  - `FactPlanActual[plan_llegada_patio]`
-  - `FactPlanActual[plan_devolucion_vacio]`
+  - `FactPlanActual[plan_slot_grupasa]`
+  - `FactPlanActual[tipo_asignacion_grupasa]`
   - `DimStatus[status_actual]`
   - `FactStatusDiario[tipo_incidencia]`
   - `FactStatusDiario[comentario_status]`
-- Segmentador: `FactPlanActual[cumplimiento_grupasa]`
-- Segmentador: `FactPlanActual[cumplimiento_galagans]`
-- Segmentador: `FactStatusDiario[tipo_incidencia]`
 
-Formato recomendado:
+Filtros:
 
-- resaltar `cas_vencido` en rojo
-- resaltar `alerta_cas` en amarillo
-- resaltar etapa `BODEGA` o `ENTREGADO` en verde
+- `DimContenedor[puerto]`
+- `DimContenedor[naviera]`
+- `FactPlanActual[tipo_asignacion_grupasa]`
+- `FactPlanActual[cumplimiento_grupasa]`
+- `FactPlanActual[cumplimiento_galagans]`
 
 ## Pagina 3: Tiempos y Cumplimiento
 
@@ -76,7 +63,24 @@ Visuales:
 - Columna: conteo por `FactPlanActual[cumplimiento_grupasa]`
 - Columna: conteo por `FactPlanActual[cumplimiento_galagans]`
 
-## Pagina 4: Evolucion Historica
+## Pagina 4: Asignacion Grupasa
+
+Objetivo: analizar la reasignacion de slots planificados por pedido.
+
+Visuales:
+
+- Tarjeta: `Contenedores Reasignados Grupasa`
+- Tarjeta: `Contenedores Plan Directo Grupasa`
+- Tabla:
+  - `DimContenedor[pedido]`
+  - `FactPlanActual[contenedor_id]`
+  - `FactPlanActual[plan_slot_grupasa]`
+  - `FactPlanActual[tipo_asignacion_grupasa]`
+  - `FactPlanActual[plan_llegada_grupasa]`
+  - `DimBodega[bodega]`
+- Barra: conteo por `FactPlanActual[tipo_asignacion_grupasa]`
+
+## Pagina 5: Evolucion Historica
 
 Objetivo: ver como cambia el status por dia.
 
@@ -85,18 +89,14 @@ Visuales:
 - Linea: conteo diario por `DimFecha[fecha]`
 - Area apilada: contenedores por `DimStatus[status_actual]` y `DimFecha[fecha]`
 - Matriz: `DimFecha[fecha]` vs `DimStatus[status_actual]`
-- Tabla detalle historica:
+- Tabla historica:
   - `FactStatusDiario[fecha_snapshot]`
   - `FactStatusDiario[contenedor_id]`
   - `DimStatus[status_actual]`
   - `FactStatusDiario[tipo_incidencia]`
   - `FactStatusDiario[comentario_status]`
 
-Fuente principal:
-
-- `FactStatusDiario`
-
-## Pagina 5: Calidad de Datos
+## Pagina 6: Calidad de Datos
 
 Objetivo: monitorear salud del pipeline.
 
@@ -112,13 +112,3 @@ Visuales:
   - `error_code`
   - `contenedor_id`
   - `detail`
-
-## Navegacion
-
-Orden sugerido:
-
-1. Resumen Ejecutivo
-2. Seguimiento Operativo
-3. Tiempos y Cumplimiento
-4. Evolucion Historica
-5. Calidad de Datos

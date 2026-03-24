@@ -41,26 +41,14 @@ CALCULATE(
 
 Pct Cumplimiento Grupasa =
 DIVIDE(
-    CALCULATE(
-        [Contenedores],
-        FactPlanActual[cumplimiento_grupasa] = "CUMPLE"
-    ),
-    CALCULATE(
-        [Contenedores],
-        FactPlanActual[cumplimiento_grupasa] IN {"CUMPLE", "INCUMPLE"}
-    )
+    CALCULATE([Contenedores], FactPlanActual[cumplimiento_grupasa] = "CUMPLE"),
+    CALCULATE([Contenedores], FactPlanActual[cumplimiento_grupasa] IN {"CUMPLE", "INCUMPLE"})
 )
 
 Pct Cumplimiento Galagans =
 DIVIDE(
-    CALCULATE(
-        [Contenedores],
-        FactPlanActual[cumplimiento_galagans] = "CUMPLE"
-    ),
-    CALCULATE(
-        [Contenedores],
-        FactPlanActual[cumplimiento_galagans] IN {"CUMPLE", "INCUMPLE"}
-    )
+    CALCULATE([Contenedores], FactPlanActual[cumplimiento_galagans] = "CUMPLE"),
+    CALCULATE([Contenedores], FactPlanActual[cumplimiento_galagans] IN {"CUMPLE", "INCUMPLE"})
 )
 
 Dias Prom Puerto a Patio = AVERAGE(FactPlanActual[dias_puerto_a_patio])
@@ -69,19 +57,23 @@ Dias Prom Patio a Bodega = AVERAGE(FactPlanActual[dias_patio_a_bodega])
 
 Dias Prom Bodega a Deposito = AVERAGE(FactPlanActual[dias_bodega_a_deposito])
 
+Contenedores Reasignados Grupasa =
+CALCULATE(
+    [Contenedores],
+    FactPlanActual[tipo_asignacion_grupasa] = "persistida"
+)
+
+Contenedores Plan Directo Grupasa =
+CALCULATE(
+    [Contenedores],
+    FactPlanActual[tipo_asignacion_grupasa] = "directa_hoja"
+)
+
 Errores Validacion = COUNTROWS(FactErroresValidacion)
 
 Snapshots Status = COUNTROWS(FactStatusDiario)
 
 Contenedores Unicos Historico = DISTINCTCOUNT(FactStatusDiario[contenedor_id])
-
-Contenedores con Incidencia =
-CALCULATE(
-    DISTINCTCOUNT(FactStatusDiario[contenedor_id]),
-    NOT ISBLANK(FactStatusDiario[tipo_incidencia]),
-    FactStatusDiario[tipo_incidencia] <> "",
-    FactStatusDiario[es_ultimo_status] = TRUE()
-)
 
 Semaforo CAS =
 SWITCH(
