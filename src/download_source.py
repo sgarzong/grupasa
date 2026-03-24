@@ -23,7 +23,7 @@ REQUIRED_SHEETS = [
 OPTIONAL_SHEETS = ["Control_Calidad"]
 HEADER_SENTINELS: dict[str, list[str]] = {
     "Registro_Contenedores": ["id_contenedor", "pedido", "fecha_cas"],
-    "Planif_Grupasa": ["id_contenedor", "plan_llegada_grupasa", "bodega"],
+    "Planif_Grupasa": ["id_contenedor", "fecha_descarga_planificada", "bodega"],
     "Planif_Galagans": ["id_contenedor", "plan_llegada_patio", "plan_devolucion_vacio"],
     "Status_Operativo": ["id_contenedor", "status_actual", "comentario"],
     "Control_Calidad": ["id_contenedor", "regla"],

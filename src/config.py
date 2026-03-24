@@ -35,6 +35,7 @@ class Settings:
     status_historico_path: Path
     registro_congelado_path: Path
     plan_galagans_congelado_path: Path
+    asignacion_plan_grupasa_path: Path
     errores_validacion_path: Path
     dim_contenedor_path: Path
     dim_fecha_path: Path
@@ -86,6 +87,7 @@ def get_settings() -> Settings:
         status_historico_path=history_dir / "status_historico.csv",
         registro_congelado_path=history_dir / "registro_congelado.csv",
         plan_galagans_congelado_path=history_dir / "plan_galagans_congelado.csv",
+        asignacion_plan_grupasa_path=history_dir / "asignacion_plan_grupasa.csv",
         errores_validacion_path=quality_dir / "errores_validacion.csv",
         dim_contenedor_path=powerbi_dir / "dim_contenedor.csv",
         dim_fecha_path=powerbi_dir / "dim_fecha.csv",

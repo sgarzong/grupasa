@@ -14,12 +14,16 @@ CURRENT_OUTPUT_COLUMNS = [
     "naviera",
     "puerto",
     "deposito_vacio",
+    "fecha_arribo_gye",
+    "fecha_salida_autorizada",
     "fecha_arribo",
     "fecha_cas",
     "plan_llegada_grupasa",
     "bodega",
     "hora_descarga",
     "comentario_plan_grupasa",
+    "plan_slot_grupasa",
+    "tipo_asignacion_grupasa",
     "plan_llegada_patio",
     "plan_devolucion_vacio",
     "comentario_plan_galagans",
@@ -49,43 +53,47 @@ POWER_BI_TABLE_ORDER = [
 def build_current_dataset(
     sheets: dict[str, pd.DataFrame],
     status_history: pd.DataFrame,
+    grupasa_plan_resolved: pd.DataFrame,
     snapshot_date: str,
     cas_alert_days: int,
 ) -> pd.DataFrame:
     registro = sheets["Registro_Contenedores"].copy()
-    plan_grupasa = sheets["Planif_Grupasa"].copy()
     plan_galagans = sheets["Planif_Galagans"].copy()
     status_actual = sheets["Status_Operativo"].copy()
 
-    id_index = _build_id_index(registro, plan_grupasa, plan_galagans, status_actual)
+    id_index = _build_id_index(registro, grupasa_plan_resolved, plan_galagans, status_actual)
 
     current = (
         id_index.merge(
-            registro[
-                [
+            registro.reindex(
+                columns=[
                     "contenedor_id",
                     "pedido",
                     "parcial",
                     "naviera",
                     "puerto",
                     "deposito_vacio",
+                    "fecha_arribo_gye",
+                    "fecha_salida_autorizada",
                     "fecha_arribo",
                     "fecha_cas",
                 ]
-            ],
+            ),
             on="contenedor_id",
             how="left",
         )
         .merge(
-            plan_grupasa[
-                [
+            grupasa_plan_resolved.reindex(
+                columns=[
                     "contenedor_id",
                     "plan_llegada_grupasa",
                     "bodega",
                     "hora_descarga",
                     "comentario_plan_grupasa",
+                    "plan_slot",
+                    "tipo_asignacion",
                 ]
-            ],
+            ),
             on="contenedor_id",
             how="left",
         )
@@ -131,6 +139,12 @@ def build_current_dataset(
     )
     current["cumplimiento_grupasa"] = current.apply(_compute_cumplimiento_grupasa, axis=1)
     current["cumplimiento_galagans"] = current.apply(_compute_cumplimiento_galagans, axis=1)
+    current = current.rename(
+        columns={
+            "plan_slot": "plan_slot_grupasa",
+            "tipo_asignacion": "tipo_asignacion_grupasa",
+        }
+    )
 
     for column in CURRENT_OUTPUT_COLUMNS:
         if column not in current.columns:
@@ -318,6 +332,8 @@ def _build_dim_bodega(current_dataset: pd.DataFrame) -> pd.DataFrame:
 def _build_dim_fecha(current_dataset: pd.DataFrame, status_history: pd.DataFrame) -> pd.DataFrame:
     date_columns = [
         "fecha_snapshot",
+        "fecha_arribo_gye",
+        "fecha_salida_autorizada",
         "fecha_arribo",
         "fecha_cas",
         "plan_llegada_grupasa",
@@ -464,6 +480,8 @@ def _build_fact_plan_actual(
         return pd.DataFrame(
             columns=[
                 "snapshot_fecha_key",
+                "fecha_arribo_gye_key",
+                "fecha_salida_autorizada_key",
                 "fecha_arribo_key",
                 "fecha_cas_key",
                 "plan_llegada_grupasa_key",
@@ -479,10 +497,14 @@ def _build_fact_plan_actual(
                 "naviera",
                 "puerto",
                 "deposito_vacio",
+                "fecha_arribo_gye",
+                "fecha_salida_autorizada",
                 "fecha_arribo",
                 "fecha_cas",
                 "plan_llegada_grupasa",
                 "hora_descarga",
+                "plan_slot_grupasa",
+                "tipo_asignacion_grupasa",
                 "plan_llegada_patio",
                 "plan_devolucion_vacio",
                 "cumplimiento_grupasa",
@@ -501,6 +523,8 @@ def _build_fact_plan_actual(
 
     for source_column, key_column in [
         ("fecha_snapshot", "snapshot_fecha_key"),
+        ("fecha_arribo_gye", "fecha_arribo_gye_key"),
+        ("fecha_salida_autorizada", "fecha_salida_autorizada_key"),
         ("fecha_arribo", "fecha_arribo_key"),
         ("fecha_cas", "fecha_cas_key"),
         ("plan_llegada_grupasa", "plan_llegada_grupasa_key"),
@@ -513,6 +537,8 @@ def _build_fact_plan_actual(
     valid_date_keys = set(dim_fecha["fecha_key"].tolist()) if not dim_fecha.empty else set()
     for key_column in [
         "snapshot_fecha_key",
+        "fecha_arribo_gye_key",
+        "fecha_salida_autorizada_key",
         "fecha_arribo_key",
         "fecha_cas_key",
         "plan_llegada_grupasa_key",
@@ -529,6 +555,8 @@ def _build_fact_plan_actual(
     return fact[
         [
             "snapshot_fecha_key",
+            "fecha_arribo_gye_key",
+            "fecha_salida_autorizada_key",
             "fecha_arribo_key",
             "fecha_cas_key",
             "plan_llegada_grupasa_key",
@@ -544,10 +572,14 @@ def _build_fact_plan_actual(
             "naviera",
             "puerto",
             "deposito_vacio",
+            "fecha_arribo_gye",
+            "fecha_salida_autorizada",
             "fecha_arribo",
             "fecha_cas",
             "plan_llegada_grupasa",
             "hora_descarga",
+            "plan_slot_grupasa",
+            "tipo_asignacion_grupasa",
             "plan_llegada_patio",
             "plan_devolucion_vacio",
             "cumplimiento_grupasa",

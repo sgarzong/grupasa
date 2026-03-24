@@ -10,6 +10,12 @@ import pandas as pd
 from src.config import ensure_directories, get_settings
 from src.download_source import detect_header_rows, fetch_source_workbook, read_source_sheets
 from src.export_outputs import export_csv
+from src.plan_assignment import (
+    apply_grupasa_assignments,
+    extract_moved_container_ids,
+    load_existing_assignments,
+    resolve_grupasa_assignments,
+)
 from src.protect_sheet import protect_operational_rows
 from src.snapshot import append_daily_snapshot, upsert_latest_snapshot
 from src.transform import (
@@ -43,6 +49,7 @@ def run_pipeline() -> int:
     pipeline_issues: list[dict[str, Any]] = []
     current_output = pd.DataFrame(columns=CURRENT_OUTPUT_COLUMNS)
     powerbi_outputs = {table_name: pd.DataFrame() for table_name in POWER_BI_TABLE_ORDER}
+    grupasa_assignments = pd.DataFrame()
 
     try:
         download_result = fetch_source_workbook(settings)
@@ -77,10 +84,24 @@ def run_pipeline() -> int:
             settings.snapshot_date,
             ["contenedor_id"],
         )
+        existing_assignments = load_existing_assignments(settings.asignacion_plan_grupasa_path)
+        grupasa_assignments = resolve_grupasa_assignments(
+            registro_df=standardized_sheets["Registro_Contenedores"],
+            plan_grupasa_df=standardized_sheets["Planif_Grupasa"],
+            status_history_df=status_history,
+            existing_assignments_df=existing_assignments,
+            snapshot_date=settings.snapshot_date,
+        )
+        grupasa_plan_resolved = apply_grupasa_assignments(
+            plan_grupasa_df=standardized_sheets["Planif_Grupasa"],
+            assignments_df=grupasa_assignments,
+            moved_container_ids=extract_moved_container_ids(status_history),
+        )
 
         current_output = build_current_dataset(
             standardized_sheets,
             status_history=status_history,
+            grupasa_plan_resolved=grupasa_plan_resolved,
             snapshot_date=settings.snapshot_date,
             cas_alert_days=settings.cas_alert_days,
         )
@@ -92,6 +113,7 @@ def run_pipeline() -> int:
 
         all_issues = pd.concat([validation_errors, pd.DataFrame(pipeline_issues)], ignore_index=True, sort=False)
         export_csv(current_output, settings.contenedores_actual_path)
+        export_csv(grupasa_assignments, settings.asignacion_plan_grupasa_path)
         export_csv(powerbi_outputs["dim_contenedor"], settings.dim_contenedor_path)
         export_csv(powerbi_outputs["dim_fecha"], settings.dim_fecha_path)
         export_csv(powerbi_outputs["dim_status"], settings.dim_status_path)
@@ -120,6 +142,7 @@ def run_pipeline() -> int:
         logger.exception("Fallo controlado en pipeline: %s", exc)
         pipeline_issues.append(_build_pipeline_issue(settings.snapshot_date, "CRITICAL", "pipeline_failure", str(exc)))
         export_csv(current_output, settings.contenedores_actual_path)
+        export_csv(grupasa_assignments, settings.asignacion_plan_grupasa_path)
         export_csv(powerbi_outputs["dim_contenedor"], settings.dim_contenedor_path)
         export_csv(powerbi_outputs["dim_fecha"], settings.dim_fecha_path)
         export_csv(powerbi_outputs["dim_status"], settings.dim_status_path)

@@ -29,6 +29,7 @@ Salida:
 - `data/history/status_historico.csv`
 - `data/history/registro_congelado.csv`
 - `data/history/plan_galagans_congelado.csv`
+- `data/history/asignacion_plan_grupasa.csv`
 - `data/quality/errores_validacion.csv`
 - `data/powerbi/dim_contenedor.csv`
 - `data/powerbi/dim_fecha.csv`
@@ -117,6 +118,10 @@ Como no hay fechas reales explicitas para todos los hitos, las fechas operativas
 - `plan_galagans_congelado.csv`:
   - no acumula snapshots diarios
   - conserva solo el ultimo estado conocido por `contenedor_id`
+- `asignacion_plan_grupasa.csv`:
+  - conserva la asignacion efectiva de slots Grupasa por `pedido`
+  - cuando un contenedor tiene su primer movimiento real fuera de puerto, consume el slot mas temprano disponible de su pedido
+  - la asignacion se reutiliza en corridas futuras para no reordenar contenedores ya asignados
 
 ## Validaciones implementadas
 
@@ -146,11 +151,15 @@ Columnas minimas:
 - `puerto`
 - `deposito_vacio`
 - `fecha_arribo`
+- `fecha_arribo_gye`
+- `fecha_salida_autorizada`
 - `fecha_cas`
 - `plan_llegada_grupasa`
 - `bodega`
 - `hora_descarga`
 - `comentario_plan_grupasa`
+- `plan_slot_grupasa`
+- `tipo_asignacion_grupasa`
 - `plan_llegada_patio`
 - `plan_devolucion_vacio`
 - `comentario_plan_galagans`

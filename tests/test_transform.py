@@ -69,7 +69,8 @@ def test_transform_builds_metrics_and_compliance() -> None:
         ]
     )
 
-    current = build_current_dataset(sheets, status_history, "2026-03-22", 3)
+    grupasa_plan_resolved = sheets["Planif_Grupasa"].assign(plan_slot=1, tipo_asignacion="directa_hoja")
+    current = build_current_dataset(sheets, status_history, grupasa_plan_resolved, "2026-03-22", 3)
     row = current.iloc[0]
 
     assert row["dias_puerto_a_patio"] == 1
@@ -138,7 +139,8 @@ def test_build_powerbi_star_schema_outputs_dimensions_and_facts() -> None:
         ]
     )
 
-    current = build_current_dataset(sheets, status_history, "2026-03-18", 3)
+    grupasa_plan_resolved = sheets["Planif_Grupasa"].assign(plan_slot=1, tipo_asignacion="directa_hoja")
+    current = build_current_dataset(sheets, status_history, grupasa_plan_resolved, "2026-03-18", 3)
     star = build_powerbi_star_schema(current, status_history, 3)
 
     assert list(star["dim_contenedor"]["contenedor_id"]) == ["OOLU1111111"]

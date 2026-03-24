@@ -57,6 +57,7 @@ jobs:
           status = read_csv("data/history/status_historico.csv")
           registro = read_csv("data/history/registro_congelado.csv")
           plan = read_csv("data/history/plan_galagans_congelado.csv")
+          asignacion = read_csv("data/history/asignacion_plan_grupasa.csv")
           quality = read_csv("data/quality/errores_validacion.csv")
           dim_contenedor = read_csv("data/powerbi/dim_contenedor.csv")
           dim_fecha = read_csv("data/powerbi/dim_fecha.csv")
@@ -79,6 +80,7 @@ jobs:
               f"- Status history rows: `{len(status)}`",
               f"- Registro frozen rows: `{len(registro)}`",
               f"- Plan Galagans frozen rows: `{len(plan)}`",
+              f"- Grupasa assignment rows: `{len(asignacion)}`",
               f"- Power BI dim_contenedor rows: `{len(dim_contenedor)}`",
               f"- Power BI dim_fecha rows: `{len(dim_fecha)}`",
               f"- Power BI dim_status rows: `{len(dim_status)}`",
