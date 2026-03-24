@@ -43,19 +43,12 @@ def protect_operational_rows(
     service = _build_sheets_service(settings.google_service_account_json)
     spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     existing_protections = _collect_managed_protections(spreadsheet)
-    requests: list[dict[str, Any]] = []
-
-    for protection in existing_protections:
-        protection_range = protection.get("range", {})
-        if protection_range:
-            requests.append(_build_format_request(protection_range, DEFAULT_BACKGROUND_COLOR, DEFAULT_TEXT_COLOR))
-        requests.append({"deleteProtectedRange": {"protectedRangeId": protection["protectedRangeId"]}})
-
     sheet_meta_by_name = {
         sheet["properties"]["title"]: sheet["properties"]
         for sheet in spreadsheet.get("sheets", [])
     }
 
+    target_ranges: list[dict[str, Any]] = []
     for sheet_name in TARGET_SHEETS:
         if sheet_name not in sheets or sheet_name not in sheet_meta_by_name:
             continue
@@ -75,29 +68,18 @@ def protect_operational_rows(
             "startColumnIndex": 0,
             "endColumnIndex": end_column_index,
         }
+        target_ranges.append({"sheet_name": sheet_name, "range": target_range})
 
-        requests.append(_build_format_request(target_range, LOCKED_BACKGROUND_COLOR, LOCKED_TEXT_COLOR))
-
-        requests.append(
-            {
-                "addProtectedRange": {
-                    "protectedRange": {
-                        "range": target_range,
-                        "description": f"{MANAGED_PROTECTION_PREFIX}:{sheet_name}",
-                        "warningOnly": False,
-                    }
-                }
-            }
-        )
-
-    if not requests:
+    batches = _build_protection_batches(existing_protections, target_ranges)
+    if not batches:
         LOGGER.info("No hay solicitudes de proteccion para enviar")
         return
 
-    service.spreadsheets().batchUpdate(
-        spreadsheetId=spreadsheet_id,
-        body={"requests": requests},
-    ).execute()
+    for requests in batches:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests": requests},
+        ).execute()
     LOGGER.info("Protecciones actualizadas en Google Sheets para %s hojas", len(TARGET_SHEETS))
 
 
@@ -128,6 +110,40 @@ def _collect_managed_protections(spreadsheet: dict[str, Any]) -> list[int]:
             if description.startswith(MANAGED_PROTECTION_PREFIX):
                 protections.append(protection)
     return protections
+
+
+def _build_protection_batches(
+    existing_protections: list[dict[str, Any]],
+    target_ranges: list[dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
+    delete_requests: list[dict[str, Any]] = []
+    reset_requests: list[dict[str, Any]] = []
+    lock_format_requests: list[dict[str, Any]] = []
+    add_protection_requests: list[dict[str, Any]] = []
+
+    for protection in existing_protections:
+        protection_range = protection.get("range", {})
+        if protection_range:
+            reset_requests.append(_build_format_request(protection_range, DEFAULT_BACKGROUND_COLOR, DEFAULT_TEXT_COLOR))
+        delete_requests.append({"deleteProtectedRange": {"protectedRangeId": protection["protectedRangeId"]}})
+
+    for target in target_ranges:
+        target_range = target["range"]
+        lock_format_requests.append(_build_format_request(target_range, LOCKED_BACKGROUND_COLOR, LOCKED_TEXT_COLOR))
+        add_protection_requests.append(
+            {
+                "addProtectedRange": {
+                    "protectedRange": {
+                        "range": target_range,
+                        "description": f"{MANAGED_PROTECTION_PREFIX}:{target['sheet_name']}",
+                        "warningOnly": False,
+                    }
+                }
+            }
+        )
+
+    batches = [batch for batch in [delete_requests, reset_requests + lock_format_requests, add_protection_requests] if batch]
+    return batches
 
 
 def _build_format_request(
