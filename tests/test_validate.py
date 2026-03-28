@@ -72,9 +72,64 @@ def test_validate_detects_business_rule_errors() -> None:
 
     assert "fecha_cas_vacia" in error_codes
     assert "duplicate_contenedor_id" in error_codes
-    assert "horario_entrega_invalido" in error_codes
-    assert "entregado_sin_horario" in error_codes
 
 
 def test_coerce_excel_date_handles_excel_serial() -> None:
     assert str(coerce_excel_date(46127)) == "2026-04-15"
+
+
+def test_validate_new_consolidated_format_accepts_missing_horario() -> None:
+    sheets = {
+        "Registro_Contenedores": pd.DataFrame(
+            [
+                {
+                    "ID_Contenedor": "MSCU1",
+                    "Pedido": "PED1",
+                    "Parcial": "P1",
+                    "Naviera": "MSC",
+                    "Puerto": "GYE",
+                    "Deposito_Vacio": "DEP1",
+                    "Fecha_Arribo_ de la carga al puerto": "2026-03-20",
+                    "Fecha_Salida_Autorizada": "2026-03-21",
+                    "Fecha Retiro Puerto": "2026-03-22",
+                    "Fecha_CAS": "2026-03-23",
+                }
+            ]
+        ),
+        "Planif_Grupasa": pd.DataFrame(
+            [
+                {
+                    "ID_Contenedor": "MSCU1",
+                    "Fecha Descarga Planificada": "2026-03-24",
+                    "Bodega": "B1",
+                    "Comentario": "Observacion unica",
+                }
+            ]
+        ),
+        "Planif_Galagans": pd.DataFrame(
+            [
+                {
+                    "ID_Contenedor": "MSCU1",
+                    "Fecha Retiro Puerto": "2026-03-22",
+                    "Fecha_Plan_Devolucion_Vacio": "2026-03-25",
+                    "Comentario": "Observacion unica",
+                }
+            ]
+        ),
+        "Status_Operativo": pd.DataFrame(
+            [
+                {
+                    "ID_Contenedor": "MSCU1",
+                    "Status_Actual": "ENTREGADO",
+                    "Tipo_Incidencia": "",
+                    "Comentario": "Cerrado",
+                }
+            ]
+        ),
+    }
+
+    _, issues = standardize_and_validate(sheets, "2026-03-22")
+    error_codes = set(issues["error_code"].tolist())
+
+    assert "entregado_sin_horario" not in error_codes
+    assert "horario_entrega_invalido" not in error_codes

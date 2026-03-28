@@ -21,6 +21,7 @@ REQUIRED_SHEETS = [
     "Status_Operativo",
 ]
 OPTIONAL_SHEETS = ["Control_Calidad"]
+NEW_FORMAT_SHEET_NAME = "Registro Contenedores"
 HEADER_SENTINELS: dict[str, list[str]] = {
     "Registro_Contenedores": ["id_contenedor", "pedido", "fecha_cas"],
     "Planif_Grupasa": ["id_contenedor", "fecha_descarga_planificada", "bodega"],
@@ -64,6 +65,11 @@ def fetch_source_workbook(settings: Settings) -> DownloadResult:
 
 
 def read_source_sheets(source_path: Path) -> dict[str, pd.DataFrame]:
+    workbook = pd.ExcelFile(source_path)
+    sheet_names = set(workbook.sheet_names)
+    if NEW_FORMAT_SHEET_NAME in sheet_names:
+        return _read_new_format_workbook(workbook)
+
     selected: dict[str, pd.DataFrame] = {}
     for sheet_name in REQUIRED_SHEETS + OPTIONAL_SHEETS:
         try:
@@ -74,6 +80,17 @@ def read_source_sheets(source_path: Path) -> dict[str, pd.DataFrame]:
 
 
 def detect_header_rows(source_path: Path, sheet_names: list[str]) -> dict[str, int]:
+    workbook = pd.ExcelFile(source_path)
+    if NEW_FORMAT_SHEET_NAME in set(workbook.sheet_names):
+        preview = pd.read_excel(source_path, sheet_name=NEW_FORMAT_SHEET_NAME, header=None)
+        header_row = _detect_header_row(preview, "Registro_Contenedores")
+        return {
+            "Registro_Contenedores": header_row,
+            "Planif_Grupasa": header_row,
+            "Planif_Galagans": header_row,
+            "Status_Operativo": header_row,
+        }
+
     headers: dict[str, int] = {}
     for sheet_name in sheet_names:
         try:
@@ -124,3 +141,84 @@ def _detect_header_row(preview: pd.DataFrame, sheet_name: str) -> int:
 
     LOGGER.info("Header detectado para %s en fila %s", sheet_name, best_row + 1)
     return best_row
+
+
+def _read_new_format_workbook(workbook: pd.ExcelFile) -> dict[str, pd.DataFrame]:
+    LOGGER.info("Workbook detectado en formato consolidado: %s", NEW_FORMAT_SHEET_NAME)
+    consolidated = pd.read_excel(workbook, sheet_name=NEW_FORMAT_SHEET_NAME)
+    consolidated = consolidated.dropna(how="all")
+    consolidated.columns = [str(column).strip() for column in consolidated.columns]
+
+    return {
+        "Registro_Contenedores": consolidated.copy(),
+        "Planif_Grupasa": _build_new_format_plan_grupasa(consolidated),
+        "Planif_Galagans": _build_new_format_plan_galagans(consolidated),
+        "Status_Operativo": _build_new_format_status(consolidated),
+    }
+
+
+def _build_new_format_plan_grupasa(consolidated: pd.DataFrame) -> pd.DataFrame:
+    return consolidated.rename(
+        columns={
+            "Fecha Descarga Planificada": "Plan_Llegada_Grupasa",
+            "Comentario": "Comentario_Plan",
+        }
+    ).reindex(
+        columns=[
+            "ID_Contenedor",
+            "Pedido",
+            "Naviera",
+            "Puerto",
+            "Deposito_Vacio",
+            "Fecha_CAS",
+            "Plan_Llegada_Grupasa",
+            "Bodega",
+            "Hora_Descarga",
+            "Comentario_Plan",
+        ]
+    )
+
+
+def _build_new_format_plan_galagans(consolidated: pd.DataFrame) -> pd.DataFrame:
+    plan = consolidated.rename(
+        columns={
+            "Fecha Retiro Puerto": "Plan_Llegada_Patio",
+            "Fecha_Plan_Devolucion_Vacio": "Plan_Devolucion_Vacio",
+            "Comentario": "Comentario_Plan",
+        }
+    ).reindex(
+        columns=[
+            "ID_Contenedor",
+            "Pedido",
+            "Naviera",
+            "Puerto",
+            "Deposito_Vacio",
+            "Plan_Llegada_Patio",
+            "Plan_Devolucion_Vacio",
+            "Comentario_Plan",
+        ]
+    )
+    return plan
+
+
+def _build_new_format_status(consolidated: pd.DataFrame) -> pd.DataFrame:
+    return consolidated.rename(
+        columns={
+            "Comentario": "Comentario",
+        }
+    ).reindex(
+        columns=[
+            "ID_Contenedor",
+            "Pedido",
+            "Naviera",
+            "Puerto",
+            "Fecha_CAS",
+            "Fecha Descarga Planificada",
+            "Fecha_Plan_Devolucion_Vacio",
+            "Deposito_Vacio",
+            "Status_Actual",
+            "Horario_Entrega_Real",
+            "Tipo_Incidencia",
+            "Comentario",
+        ]
+    )

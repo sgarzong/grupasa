@@ -43,7 +43,6 @@ REQUIRED_COLUMNS: dict[str, list[str]] = {
     "Status_Operativo": [
         "contenedor_id",
         "status_actual",
-        "horario_entrega_real",
         "tipo_incidencia",
         "comentario_status",
     ],
@@ -76,6 +75,7 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
         "fecha_salida_autorizada": "fecha_salida_autorizada",
         "fecha_arribo": "fecha_arribo",
         "fecha_de_retiro_del_puerto_de_los_contenedores": "fecha_arribo",
+        "fecha_retiro_puerto": "fecha_arribo",
         "arribo": "fecha_arribo",
         "fecha_cas": "fecha_cas",
         "cas": "fecha_cas",
@@ -96,6 +96,7 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
         "hora_descarga": "hora_descarga",
         "comentario_plan": "comentario_plan_grupasa",
         "comentario_plan_grupasa": "comentario_plan_grupasa",
+        "comentario": "comentario_plan_grupasa",
     },
     "Planif_Galagans": {
         "contenedor": "contenedor_id",
@@ -108,9 +109,12 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
         "hora_descarga": "hora_descarga",
         "deposito_vacio": "deposito_vacio",
         "plan_llegada_patio": "plan_llegada_patio",
+        "fecha_retiro_puerto": "plan_llegada_patio",
+        "fecha_plan_devolucion_vacio": "plan_devolucion_vacio",
         "plan_devolucion_vacio": "plan_devolucion_vacio",
         "comentario_plan": "comentario_plan_galagans",
         "comentario_plan_galagans": "comentario_plan_galagans",
+        "comentario": "comentario_plan_galagans",
     },
     "Status_Operativo": {
         "contenedor": "contenedor_id",
@@ -121,7 +125,9 @@ ALIASES_BY_SHEET: dict[str, dict[str, str]] = {
         "puerto": "puerto",
         "fecha_cas": "fecha_cas",
         "plan_llegada_grupasa": "plan_llegada_grupasa",
+        "fecha_descarga_planificada": "plan_llegada_grupasa",
         "hora_descarga": "hora_descarga",
+        "fecha_plan_devolucion_vacio": "plan_devolucion_vacio",
         "plan_devolucion_vacio": "plan_devolucion_vacio",
         "deposito_vacio": "deposito_vacio",
         "status_actual": "status_actual",
@@ -181,7 +187,7 @@ def standardize_and_validate(
                         severity="CRITICAL",
                         error_code="missing_sheet",
                         contenedor_id="",
-                        detail=f"No se encontró la hoja requerida {sheet_name}",
+                        detail=f"No se encontro la hoja requerida {sheet_name}",
                     )
                 )
             standardized[sheet_name] = _empty_sheet(sheet_name)
@@ -302,7 +308,7 @@ def _validate_sheet_rules(
                     severity="ERROR",
                     error_code="duplicate_contenedor_id",
                     contenedor_id=container_id,
-                    detail="El contenedor aparece más de una vez en la hoja",
+                    detail="El contenedor aparece mas de una vez en la hoja",
                 )
             )
 
@@ -316,7 +322,7 @@ def _validate_sheet_rules(
                     severity="ERROR",
                     error_code="fecha_cas_vacia",
                     contenedor_id=container_id,
-                    detail="La fecha CAS está vacía",
+                    detail="La fecha CAS esta vacia",
                 )
             )
 
@@ -331,34 +337,7 @@ def _validate_sheet_rules(
                     severity="ERROR",
                     error_code="status_vacio",
                     contenedor_id=container_id,
-                    detail="El status actual está vacío",
-                )
-            )
-
-        horario = df["horario_entrega_real"].fillna("").astype(str).str.strip()
-        invalid_horario = horario.ne("") & normalized_status.ne("ENTREGADO")
-        for container_id in df.loc[invalid_horario, "contenedor_id"].fillna("").astype(str):
-            issues.append(
-                ValidationIssue(
-                    fecha_snapshot=snapshot_date,
-                    sheet_name=sheet_name,
-                    severity="ERROR",
-                    error_code="horario_entrega_invalido",
-                    contenedor_id=container_id,
-                    detail="Horario_Entrega_Real solo es válido cuando Status_Actual es ENTREGADO",
-                )
-            )
-
-        missing_horario = normalized_status.eq("ENTREGADO") & horario.eq("")
-        for container_id in df.loc[missing_horario, "contenedor_id"].fillna("").astype(str):
-            issues.append(
-                ValidationIssue(
-                    fecha_snapshot=snapshot_date,
-                    sheet_name=sheet_name,
-                    severity="ERROR",
-                    error_code="entregado_sin_horario",
-                    contenedor_id=container_id,
-                    detail="Status ENTREGADO sin Horario_Entrega_Real",
+                    detail="El status actual esta vacio",
                 )
             )
 
