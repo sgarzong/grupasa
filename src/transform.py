@@ -254,7 +254,7 @@ def map_status_to_stage(status: object) -> str | None:
         return None
     if "DEPOSITO" in normalized or "VACIO" in normalized:
         return "DEPOSITO"
-    if "BODEGA" in normalized or "ENTREGADO" in normalized:
+    if "BODEGA" in normalized or "ENTREGADO" in normalized or "GRUPASA" in normalized:
         return "BODEGA"
     if "PATIO" in normalized:
         return "PATIO"
