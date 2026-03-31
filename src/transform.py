@@ -289,14 +289,28 @@ def _build_dim_contenedor(current_dataset: pd.DataFrame, status_history: pd.Data
         "puerto",
         "deposito_vacio",
     ]
-    dim = current_dataset[columns].copy()
-    if "contenedor_id" in status_history.columns:
-        history_dim = pd.DataFrame({"contenedor_id": status_history["contenedor_id"].astype("string")})
-        for column in columns[1:]:
-            history_dim[column] = pd.NA
-        dim = pd.concat([dim, history_dim], ignore_index=True, sort=False)
+    sources: list[pd.DataFrame] = []
 
-    dim = dim.dropna(subset=["contenedor_id"]).drop_duplicates(subset=["contenedor_id"], keep="first").sort_values("contenedor_id")
+    if "contenedor_id" in status_history.columns:
+        history_columns = [column for column in columns if column in status_history.columns]
+        history_dim = status_history[history_columns].copy()
+        if "fecha_snapshot" in status_history.columns:
+            history_dim["fecha_snapshot"] = pd.to_datetime(status_history["fecha_snapshot"], errors="coerce")
+            history_dim = history_dim.sort_values("fecha_snapshot", na_position="first")
+            history_dim = history_dim.drop(columns=["fecha_snapshot"])
+        for column in columns:
+            if column not in history_dim.columns:
+                history_dim[column] = pd.NA
+        history_dim = history_dim[columns].dropna(subset=["contenedor_id"]).drop_duplicates(
+            subset=["contenedor_id"], keep="last"
+        )
+        sources.append(history_dim)
+
+    current_dim = current_dataset.reindex(columns=columns).copy()
+    sources.append(current_dim)
+
+    dim = pd.concat(sources, ignore_index=True, sort=False)
+    dim = dim.dropna(subset=["contenedor_id"]).drop_duplicates(subset=["contenedor_id"], keep="last").sort_values("contenedor_id")
     dim.insert(0, "contenedor_key", range(1, len(dim) + 1))
     return dim.reset_index(drop=True)
 

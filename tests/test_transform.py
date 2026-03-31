@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.transform import build_current_dataset, build_powerbi_star_schema
+from src.transform import CURRENT_OUTPUT_COLUMNS, build_current_dataset, build_powerbi_star_schema
 
 
 def test_transform_builds_metrics_and_compliance() -> None:
@@ -151,3 +151,44 @@ def test_build_powerbi_star_schema_outputs_dimensions_and_facts() -> None:
     assert len(star["fact_plan_actual"]) == 1
     assert star["fact_plan_actual"].iloc[0]["contenedor_key"] == 1
     assert bool(star["fact_status_diario"].iloc[-1]["es_ultimo_status"]) is True
+
+
+def test_build_powerbi_star_schema_fills_dim_contenedor_from_history() -> None:
+    current_row = {column: pd.NA for column in CURRENT_OUTPUT_COLUMNS}
+    current_row.update(
+        {
+            "fecha_snapshot": "2026-03-27",
+            "contenedor_id": "ACTU1234567",
+            "pedido": "PED-ACTUAL",
+            "parcial": "P1",
+            "naviera": "MSC",
+            "puerto": "TPG",
+            "deposito_vacio": "MEDLOG",
+            "fecha_cas": "2026-03-30",
+            "status_actual": "EN PATIO",
+            "bodega": pd.NA,
+        }
+    )
+    current_dataset = pd.DataFrame([current_row])
+    status_history = pd.DataFrame(
+        [
+            {
+                "fecha_snapshot": "2026-03-20",
+                "contenedor_id": "HIST7654321",
+                "pedido": "PED-HIST",
+                "parcial": "P9",
+                "naviera": "CMA",
+                "puerto": "NAPORTEC",
+                "deposito_vacio": "BLASTI",
+                "status_actual": "EN PUERTO",
+            }
+        ]
+    )
+
+    star = build_powerbi_star_schema(current_dataset, status_history, 3)
+    dim = star["dim_contenedor"].set_index("contenedor_id")
+
+    assert dim.loc["HIST7654321", "pedido"] == "PED-HIST"
+    assert dim.loc["HIST7654321", "parcial"] == "P9"
+    assert dim.loc["HIST7654321", "naviera"] == "CMA"
+    assert dim.loc["ACTU1234567", "pedido"] == "PED-ACTUAL"
