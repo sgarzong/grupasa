@@ -55,6 +55,8 @@ Uso:
 - evolucion diaria de status
 - incidencias por dia
 - alertas CAS historicas
+- universo real de contenedores para backlog y estado actual
+- base de las medidas de conteo actuales usando `es_ultimo_status = TRUE()`
 
 ### `FactPlanActual`
 
@@ -67,6 +69,7 @@ Uso:
 - tiempos entre etapas
 - detalle actual
 - analisis de reasignacion de slots Grupasa
+- planeacion vigente solamente, no universo historico completo
 
 Campos clave de esta version:
 
@@ -111,3 +114,5 @@ Relaciones recomendadas como inactivas:
 - no crear relaciones directas entre hechos
 - usar `USERELATIONSHIP` para activar fechas alternativas en medidas
 - usar `tipo_asignacion_grupasa` para separar contenedores reasignados vs plan directo
+- usar `FactStatusDiario` para tarjetas y visuales de estado actual, filtrando `es_ultimo_status = TRUE()`
+- reservar `FactPlanActual` para cumplimiento, CAS, planes y reasignacion
