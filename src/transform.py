@@ -232,7 +232,7 @@ def build_powerbi_star_schema(
 ) -> dict[str, pd.DataFrame]:
     dim_contenedor = _build_dim_contenedor(current_dataset, status_history)
     dim_status = _build_dim_status(current_dataset, status_history)
-    dim_bodega = _build_dim_bodega(current_dataset)
+    dim_bodega = _build_dim_bodega(current_dataset, status_history)
     dim_fecha = _build_dim_fecha(current_dataset, status_history)
     fact_status_diario = _build_fact_status_diario(
         current_dataset=current_dataset,
@@ -349,8 +349,14 @@ def _build_dim_status(current_dataset: pd.DataFrame, status_history: pd.DataFram
     return dim.drop_duplicates(subset=["status_key"], keep="first").reset_index(drop=True)
 
 
-def _build_dim_bodega(current_dataset: pd.DataFrame) -> pd.DataFrame:
-    dim = pd.DataFrame({"bodega": current_dataset.get("bodega", pd.Series(dtype="string")).astype("string").fillna("").str.strip()})
+def _build_dim_bodega(current_dataset: pd.DataFrame, status_history: pd.DataFrame) -> pd.DataFrame:
+    values = pd.Series(dtype="string")
+    if "bodega" in current_dataset.columns:
+        values = pd.concat([values, current_dataset["bodega"].astype("string")], ignore_index=True)
+    if "bodega" in status_history.columns:
+        values = pd.concat([values, status_history["bodega"].astype("string")], ignore_index=True)
+
+    dim = pd.DataFrame({"bodega": values.fillna("").str.strip()})
     dim = dim.loc[dim["bodega"].ne("")].drop_duplicates().sort_values("bodega").reset_index(drop=True)
     dim.insert(0, "bodega_key", range(1, len(dim) + 1))
     unknown = pd.DataFrame([{"bodega_key": 0, "bodega": "SIN_BODEGA"}])
@@ -379,6 +385,12 @@ def _build_dim_fecha(current_dataset: pd.DataFrame, status_history: pd.DataFrame
             [date_values, pd.to_datetime(status_history["fecha_snapshot"], errors="coerce").dt.date],
             ignore_index=True,
         )
+    for column in ["fecha_cas", "plan_llegada_grupasa", "plan_devolucion_vacio"]:
+        if column in status_history.columns:
+            date_values = pd.concat(
+                [date_values, pd.to_datetime(status_history[column], errors="coerce").dt.date],
+                ignore_index=True,
+            )
 
     unique_dates = sorted({value for value in date_values.dropna().tolist()})
     dim = pd.DataFrame({"fecha": unique_dates})
@@ -420,6 +432,9 @@ def _build_fact_status_diario(
     columns = [
         "fecha_snapshot",
         "contenedor_id",
+        "fecha_cas",
+        "plan_llegada_grupasa",
+        "bodega",
         "status_actual",
         "horario_entrega_real",
         "tipo_incidencia",
@@ -433,8 +448,12 @@ def _build_fact_status_diario(
                 "contenedor_key",
                 "status_key",
                 "bodega_key",
+                "plan_llegada_grupasa_key",
                 "fecha_snapshot",
+                "fecha_cas",
+                "plan_llegada_grupasa",
                 "contenedor_id",
+                "bodega",
                 "status_actual",
                 "status_stage",
                 "horario_entrega_real",
@@ -448,11 +467,15 @@ def _build_fact_status_diario(
 
     fact["fecha_snapshot"] = pd.to_datetime(fact["fecha_snapshot"], errors="coerce").dt.date
     fact["status_actual"] = fact["status_actual"].astype("string").fillna("").str.strip()
-    fact = fact.merge(
-        current_dataset[["contenedor_id", "fecha_cas", "bodega"]].drop_duplicates(subset=["contenedor_id"]),
-        on="contenedor_id",
-        how="left",
-    )
+    current_lookup = current_dataset[
+        ["contenedor_id", "fecha_cas", "bodega", "plan_llegada_grupasa"]
+    ].drop_duplicates(subset=["contenedor_id"])
+    fact = fact.merge(current_lookup, on="contenedor_id", how="left", suffixes=("", "_current"))
+    for column in ["fecha_cas", "bodega", "plan_llegada_grupasa"]:
+        current_column = f"{column}_current"
+        if current_column in fact.columns:
+            fact[column] = fact[column].combine_first(fact[current_column])
+            fact = fact.drop(columns=[current_column])
     fact["alerta_cas"] = fact.apply(
         lambda row: _compute_alerta_cas(
             pd.Series({"status_actual": row.get("status_actual"), "fecha_cas": row.get("fecha_cas")}),
@@ -480,6 +503,9 @@ def _build_fact_status_diario(
     fact = fact.merge(dim_status[["status_key", "status_actual"]], on="status_actual", how="left")
     fact = fact.merge(dim_bodega[["bodega_key", "bodega"]], on="bodega", how="left")
     fact["fecha_key"] = fact["fecha_snapshot"].apply(lambda value: int(value.strftime("%Y%m%d")) if pd.notna(value) else pd.NA)
+    fact["plan_llegada_grupasa_key"] = pd.to_numeric(
+        pd.to_datetime(fact["plan_llegada_grupasa"], errors="coerce").dt.strftime("%Y%m%d"), errors="coerce"
+    ).astype("Int64")
     fact["status_key"] = fact["status_key"].fillna(0).astype("Int64")
     fact["bodega_key"] = fact["bodega_key"].fillna(0).astype("Int64")
     fact["contenedor_key"] = fact["contenedor_key"].astype("Int64")
@@ -491,8 +517,12 @@ def _build_fact_status_diario(
             "contenedor_key",
             "status_key",
             "bodega_key",
+            "plan_llegada_grupasa_key",
             "fecha_snapshot",
+            "fecha_cas",
+            "plan_llegada_grupasa",
             "contenedor_id",
+            "bodega",
             "status_actual",
             "status_stage",
             "horario_entrega_real",

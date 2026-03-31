@@ -151,6 +151,8 @@ def test_build_powerbi_star_schema_outputs_dimensions_and_facts() -> None:
     assert len(star["fact_plan_actual"]) == 1
     assert star["fact_plan_actual"].iloc[0]["contenedor_key"] == 1
     assert bool(star["fact_status_diario"].iloc[-1]["es_ultimo_status"]) is True
+    assert "plan_llegada_grupasa" in star["fact_status_diario"].columns
+    assert "plan_llegada_grupasa_key" in star["fact_status_diario"].columns
 
 
 def test_build_powerbi_star_schema_fills_dim_contenedor_from_history() -> None:
@@ -192,6 +194,7 @@ def test_build_powerbi_star_schema_fills_dim_contenedor_from_history() -> None:
     assert dim.loc["HIST7654321", "parcial"] == "P9"
     assert dim.loc["HIST7654321", "naviera"] == "CMA"
     assert dim.loc["ACTU1234567", "pedido"] == "PED-ACTUAL"
+    assert "SIN_BODEGA" in set(star["dim_bodega"]["bodega"])
 
 
 def test_build_powerbi_star_schema_uses_stable_status_keys() -> None:

@@ -41,6 +41,7 @@ def test_synthesize_status_history_expands_stage_dates_daily() -> None:
     assert len(history) == 14
     assert history.iloc[0]["fecha_snapshot"] == "2026-01-02"
     assert history.iloc[-1]["fecha_snapshot"] == "2026-01-15"
+    assert set(history["bodega"].dropna()) == {"CAMPO CHINO"}
 
 
 def test_build_historical_outputs_builds_powerbi_outputs() -> None:
@@ -75,6 +76,8 @@ def test_build_historical_outputs_builds_powerbi_outputs() -> None:
     assert len(outputs["fact_plan_actual"]) == 1
     assert len(outputs["fact_status_diario"]) == 14
     assert outputs["contenedores_actual"].iloc[0]["status_actual"] == "DEVUELTO DEPOSITO VACIO"
+    assert set(outputs["fact_status_diario"]["bodega"].dropna()) == {"CAMPO CHINO"}
+    assert outputs["fact_status_diario"]["plan_llegada_grupasa"].notna().all()
 
 
 def test_map_status_to_stage_treats_grupasa_as_bodega() -> None:
