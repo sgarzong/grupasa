@@ -192,3 +192,32 @@ def test_build_powerbi_star_schema_fills_dim_contenedor_from_history() -> None:
     assert dim.loc["HIST7654321", "parcial"] == "P9"
     assert dim.loc["HIST7654321", "naviera"] == "CMA"
     assert dim.loc["ACTU1234567", "pedido"] == "PED-ACTUAL"
+
+
+def test_build_powerbi_star_schema_uses_stable_status_keys() -> None:
+    current_row = {column: pd.NA for column in CURRENT_OUTPUT_COLUMNS}
+    current_row.update(
+        {
+            "fecha_snapshot": "2026-03-27",
+            "contenedor_id": "STAT1234567",
+            "pedido": "PED-STATUS",
+            "status_actual": "EN PUERTO",
+        }
+    )
+    current_dataset = pd.DataFrame([current_row])
+    status_history = pd.DataFrame(
+        [
+            {"fecha_snapshot": "2026-03-25", "contenedor_id": "STAT1234567", "status_actual": "EN PATIO GALAGANS"},
+            {"fecha_snapshot": "2026-03-27", "contenedor_id": "STAT1234567", "status_actual": "EN PUERTO"},
+        ]
+    )
+
+    star = build_powerbi_star_schema(current_dataset, status_history, 3)
+    dim_status = star["dim_status"].set_index("status_actual")
+    fact_plan = star["fact_plan_actual"]
+    fact_status = star["fact_status_diario"].set_index("status_actual")
+
+    assert dim_status.loc["EN PUERTO", "status_key"] == 50
+    assert dim_status.loc["EN PATIO GALAGANS", "status_key"] == 40
+    assert fact_plan.iloc[0]["status_key"] == 50
+    assert fact_status.loc["EN PATIO GALAGANS", "status_key"] == 40

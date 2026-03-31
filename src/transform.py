@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 import unicodedata
+import zlib
 
 import pandas as pd
 
@@ -48,6 +49,17 @@ POWER_BI_TABLE_ORDER = [
     "fact_status_diario",
     "fact_plan_actual",
 ]
+
+KNOWN_STATUS_KEYS = {
+    "SIN_STATUS": 0,
+    "DEVUELTO DEPOSITO VACIO": 10,
+    "EN GRUPASA": 20,
+    "EN BODEGA": 25,
+    "EN PATIO": 30,
+    "EN PATIO GALAGANS": 40,
+    "EN PUERTO": 50,
+    "ENTREGADO": 60,
+}
 
 
 def build_current_dataset(
@@ -327,12 +339,14 @@ def _build_dim_status(current_dataset: pd.DataFrame, status_history: pd.DataFram
         values = pd.concat([values, source.astype("string")], ignore_index=True)
 
     dim = pd.DataFrame({"status_actual": values.fillna("").str.strip()})
-    dim = dim.loc[dim["status_actual"].ne("")].drop_duplicates().sort_values("status_actual").reset_index(drop=True)
-    dim.insert(0, "status_key", range(1, len(dim) + 1))
+    dim = dim.loc[dim["status_actual"].ne("")].drop_duplicates().reset_index(drop=True)
+    dim["status_key"] = dim["status_actual"].apply(_stable_status_key).astype("Int64")
     dim["status_stage"] = dim["status_actual"].map(map_status_to_stage).fillna("OTRO")
+    dim = dim.sort_values(["status_key", "status_actual"]).reset_index(drop=True)
 
     unknown = pd.DataFrame([{"status_key": 0, "status_actual": "SIN_STATUS", "status_stage": "SIN_STATUS"}])
-    return pd.concat([unknown, dim], ignore_index=True)
+    dim = pd.concat([unknown, dim.loc[dim["status_key"] != 0]], ignore_index=True)
+    return dim.drop_duplicates(subset=["status_key"], keep="first").reset_index(drop=True)
 
 
 def _build_dim_bodega(current_dataset: pd.DataFrame) -> pd.DataFrame:
@@ -384,6 +398,15 @@ def _build_dim_fecha(current_dataset: pd.DataFrame, status_history: pd.DataFrame
     return dim[
         ["fecha_key", "fecha", "anio", "mes_numero", "mes_nombre", "anio_mes", "trimestre", "semana_iso", "dia"]
     ]
+
+
+def _stable_status_key(status: object) -> int:
+    normalized = _normalize_status_text(status)
+    if not normalized:
+        return 0
+    if normalized in KNOWN_STATUS_KEYS:
+        return KNOWN_STATUS_KEYS[normalized]
+    return 100000 + (zlib.crc32(normalized.encode("utf-8")) % 900000)
 
 
 def _build_fact_status_diario(
