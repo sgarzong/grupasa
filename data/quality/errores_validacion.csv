@@ -1,2 +1,2 @@
 fecha_snapshot,sheet_name,severity,error_code,contenedor_id,detail
-2026-05-08,pipeline,ERROR,google_sheets_protection_failed,,"No se pudieron actualizar las protecciones. Si existen protecciones previas creadas manualmente o por otro usuario, borralas una sola vez desde Google Sheets y vuelve a correr el pipeline. Detalle original: The read operation timed out"
+2026-05-09,pipeline,ERROR,google_sheets_protection_failed,,The read operation timed out
